@@ -1,16 +1,18 @@
-from torch.utils.data import Dataset
 import pandas as pd
 from pathlib import Path
 
+import torch
+from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 from utils import get_data_path
 from data.code.track_1_kp_matching import load_kpm_data
 
 
-def generate_labeled_sentence_pair_df():
+def generate_labeled_sentence_pair_df(subset="train"):
+    assert subset in ["train", "dev"]
     gold_data_dir = Path(get_data_path(), 'kpm_data')
-    arg_df, kp_df, labels_df = load_kpm_data(gold_data_dir, subset="train")
+    arg_df, kp_df, labels_df = load_kpm_data(gold_data_dir, subset=subset)
     arg_df = arg_df[['arg_id', 'argument']]
     kp_df = kp_df[['key_point_id', 'key_point']]
     labels_df = pd.merge(labels_df, arg_df, on='arg_id')
@@ -19,8 +21,8 @@ def generate_labeled_sentence_pair_df():
 
 
 class TransformersSentencePairDataset(Dataset):
-    def __init__(self, model_name_or_path, max_len):
-        self.data = generate_labeled_sentence_pair_df()
+    def __init__(self, model_name_or_path, max_len, subset="train"):
+        self.data = generate_labeled_sentence_pair_df(subset=subset)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
         self.max_len = max_len
 
@@ -44,4 +46,7 @@ class TransformersSentencePairDataset(Dataset):
         token_type_ids = encoded_pair['token_type_ids'].squeeze(0)
         label = self.data.loc[idx, 'label']
 
-        return token_ids, attn_masks, token_type_ids, label
+        return {'input_ids': token_ids,
+                'attention_mask': attn_masks,
+                'token_type_ids': token_type_ids,
+                'labels': label}
