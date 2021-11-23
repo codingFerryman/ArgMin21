@@ -42,7 +42,7 @@ class TransformersSentencePairClassifier(nn.Module):
             else self.model.config.hidden_dropout_prob
         )
 
-    @autocast()  # run in mixed precision
+    # @autocast()  # run in mixed precision
     def forward(self, input_ids, attention_mask, token_type_ids, labels):
         outputs = self.model(input_ids,
                              attention_mask=attention_mask,
