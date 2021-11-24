@@ -55,14 +55,15 @@ def trainer(train_data: Dataset,
         predictions = torch.argmax(logits, dim=-1)
         metric.add_batch(predictions=predictions, references=batch["labels"])
 
-    print(metric.compute()) # 0.7865818392134182
+    print(metric.compute()) # 0.7854251012145749
+    torch.save(model, "model.pt")
 
 
 if __name__ == '__main__':
-    _model = "bert-base-cased"
+    _model = "bert-base-uncased"
     max_len = 128
 
     train_dataset = TransformersSentencePairDataset(_model, max_len, "train")
     dev_dataset = TransformersSentencePairDataset(_model, max_len, "dev")
 
-    trainer(train_dataset, dev_dataset, _model, num_epochs=3, batch_size=128)
+    trainer(train_dataset, dev_dataset, _model, num_epochs=3, batch_size=256)

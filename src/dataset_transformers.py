@@ -10,8 +10,11 @@ from data.code.track_1_kp_matching import load_kpm_data
 
 
 def generate_labeled_sentence_pair_df(subset="train"):
-    assert subset in ["train", "dev"]
-    gold_data_dir = Path(get_data_path(), 'kpm_data')
+    assert subset in ["train", "dev", "test"]
+    if subset == "test":
+        gold_data_dir = Path(get_data_path(), 'test_data')
+    else:
+        gold_data_dir = Path(get_data_path(), 'kpm_data')
     arg_df, kp_df, labels_df = load_kpm_data(gold_data_dir, subset=subset)
     arg_df = arg_df[['arg_id', 'argument']]
     kp_df = kp_df[['key_point_id', 'key_point']]
@@ -23,20 +26,20 @@ def generate_labeled_sentence_pair_df(subset="train"):
 class TransformersSentencePairDataset(Dataset):
     def __init__(self, model_name_or_path, max_len, subset="train"):
         self.data = generate_labeled_sentence_pair_df(subset=subset)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, use_fast=False)
         self.max_len = max_len
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        arg_sentence = str(self.data.loc[idx, 'argument'])
-        key_sentence = str(self.data.loc[idx, 'key_point'])
+        arg_sentence = str(self.data.loc[idx, 'argument']).lower()
+        key_sentence = str(self.data.loc[idx, 'key_point']).lower()
 
         encoded_pair = self.tokenizer(
             arg_sentence, key_sentence,
             padding='max_length',
-            truncation=True,
+            truncation='longest_first',
             max_length=self.max_len,
             return_tensors='pt'
         )

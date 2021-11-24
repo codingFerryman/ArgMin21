@@ -1,6 +1,6 @@
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
-from torch.cuda.amp import autocast
+# from torch.cuda.amp import autocast
 from transformers import AutoModel
 from transformers.modeling_outputs import SequenceClassifierOutput
 
@@ -26,7 +26,7 @@ class TransformersSentencePairClassifier(nn.Module):
             hidden_size = 2048
         elif "albert-xxlarge-v2" in model_name_or_path:
             hidden_size = 4096
-        elif "bert-base-cased" in model_name_or_path:
+        elif "bert-base-uncased" in model_name_or_path:
             hidden_size = 768
         else:
             raise NotImplementedError("The model {model_name_or_path} is not supported.")
@@ -52,7 +52,7 @@ class TransformersSentencePairClassifier(nn.Module):
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
-        loss_fct = CrossEntropyLoss()
+        loss_fct = CrossEntropyLoss() # Bin
         loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
         return SequenceClassifierOutput(

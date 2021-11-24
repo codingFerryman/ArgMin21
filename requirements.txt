@@ -1,3 +1,4 @@
+GitPython
 pandas>=0.25.2
 numpy>=1.16.4
 scikit-learn>=0.21.3
