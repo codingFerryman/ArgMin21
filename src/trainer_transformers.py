@@ -55,7 +55,7 @@ def trainer(train_data: Dataset,
         predictions = torch.argmax(logits, dim=-1)
         metric.add_batch(predictions=predictions, references=batch["labels"])
 
-    metric.compute()
+    print(metric.compute()) # 0.7865818392134182
 
 
 if __name__ == '__main__':
