@@ -8,18 +8,17 @@ import psutil
 import humanize
 import GPUtil
 import os
+from ignite.utils import manual_seed
+import ignite.distributed as idist
 
 
-def set_seed(seed: int = 2021):
+def set_seed(seed: int = 2233):
     """
     Helper function for reproducible behavior to set the seed in ``random``, ``numpy``, ``torch``
     Args:
         seed (:obj:`int`): The seed to set.
     """
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    manual_seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
@@ -36,15 +35,22 @@ def get_data_path() -> Path:
     return Path(get_project_path(), 'data')
 
 
-def get_logger(name: str, debug=False):
+def get_device():
+    return idist.device()
+
+
+def get_logger(name: str, level='debug'):
     fmt = '[%(asctime)s] - %(name)s - {line:%(lineno)d} %(levelname)s - %(message)s'
     logger = logging.getLogger(name=name)
-    if debug:
+    if level.lower() == 'debug':
         logger.setLevel(logging.DEBUG)
         coloredlogs.install(fmt=fmt, level='DEBUG', logger=logger)
-    else:
+    elif level.lower() == 'info':
         logger.setLevel(logging.INFO)
         coloredlogs.install(fmt=fmt, level='INFO', logger=logger)
+    elif level.lower() in ['warn', 'warning']:
+        logger.setLevel(logging.WARNING)
+        coloredlogs.install(fmt=fmt, level='WARNING', logger=logger)
     return logger
 
 
@@ -56,5 +62,5 @@ def print_mem():
           )
     for gpu in gpus:
         print("GPU RAM Free: {0:.0f}MB | Used: {1:.0f}MB | Util {2:3.0f}% | Total {3:.0f}MB".format(
-            gpu.memoryFree, gpu.memoryUsed, gpu.memoryUtil*100, gpu.memoryTotal)
+            gpu.memoryFree, gpu.memoryUsed, gpu.memoryUtil * 100, gpu.memoryTotal)
         )

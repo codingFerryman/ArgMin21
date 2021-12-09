@@ -1,0 +1,36 @@
+{
+  "name": "bert-base BCELoss sigmoid",
+  "seed": 2021,
+  "model_config": {
+    "type": "transformer",
+    "name_or_path": "bert-base-uncased",
+    "args": {
+      "output_attentions": true,
+      "output_hidden_states": true
+    }
+  },
+  "tokenizer_config": {
+    "type": "transformer",
+    "name_or_path": "bert-base-uncased",
+    "args": {
+      "max_length": 80,
+      "padding": "max_length",
+      "truncation": "longest_first",
+      "return_tensors": "pt"
+    }
+  },
+  "trainer_config": {
+    "epoch": 10,
+    "batch_size": 64,
+    "learning_rate": 1e-3,
+    "loss": "nn.BCELoss",
+    "activation": "sigmoid",
+    "early_stopping": true,
+    "early_stopping_patience": 3,
+    "freeze": true
+  },
+  "eval_config": {
+    "batch_size": 64,
+    "mode": "plain"
+  }
+}

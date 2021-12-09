@@ -1,10 +1,10 @@
 GitPython
-pandas>=0.25.2
-numpy>=1.16.4
-scikit-learn>=0.21.3
-torch==1.10.0+cu113
+pandas
+numpy
+scikit-learn
+torch
 torchtext==0.11.0
-transformers>=4.8.1, <5.0.0
+transformers
 datasets
 matplotlib
 coloredlogs
@@ -15,4 +15,6 @@ GPUtil
 tqdm
 
 # package location
---find-links https://download.pytorch.org/whl/torch_stable.html
+--find-links https://download.pytorch.org/whl/cu113/torch_stable.html
+
+ignite

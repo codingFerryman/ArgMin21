@@ -1,48 +1,40 @@
+import torch
 import torch.nn as nn
-from torch.nn import CrossEntropyLoss
-# from torch.cuda.amp import autocast
-from transformers import AutoModel
+import torch.nn.functional as F
+from experiment import MyExperiment
 from transformers.modeling_outputs import SequenceClassifierOutput
+from pathlib import Path
+from config_map import model_map
 
 
-class TransformersSentencePairClassifier(nn.Module):
+class TransformersSentencePairClassifier(MyExperiment):
 
-    def __init__(self, model_name_or_path, num_labels=2, freeze_model=False):
-        if 'bert' not in model_name_or_path.lower():
-            raise NotImplementedError("Only support BERT-based models at this time.")
-        if num_labels != 2:
-            raise NotImplementedError("parameter \"num_labels\" only supports 2")
+    def __init__(self, config_path, num_labels=2):
+
         self.num_labels = num_labels
 
-        super(TransformersSentencePairClassifier, self).__init__()
-
-        self.model = AutoModel.from_pretrained(model_name_or_path)
-
-        if "albert-base-v2" in model_name_or_path:
-            hidden_size = 768
-        elif "albert-large-v2" in model_name_or_path:
-            hidden_size = 1024
-        elif "albert-xlarge-v2" in model_name_or_path:
-            hidden_size = 2048
-        elif "albert-xxlarge-v2" in model_name_or_path:
-            hidden_size = 4096
-        elif "bert-base-uncased" in model_name_or_path:
-            hidden_size = 768
+        super(TransformersSentencePairClassifier, self).__init__(config_path)
+        model_name_or_path = self.model_config['name_or_path']
+        if Path(model_name_or_path).is_file():
+            self.model = torch.load(model_name_or_path)
         else:
-            raise NotImplementedError("The model {model_name_or_path} is not supported.")
+            self.model = model_map(self.model_config)
+
+        # Activation
+        self.activation = self.trainer_config.get('activation', 'sigmoid')
 
         # Only train the classification layer weights
-        if freeze_model:
+        is_frozen = self.trainer_config.get('freeze', False)
+        if is_frozen is True:
             for p in self.model.parameters():
                 p.requires_grad = False
-        self.classifier = nn.Linear(hidden_size, self.num_labels)
+        self.classifier = nn.Linear(self.model.config.hidden_size, self.num_labels)
         self.dropout = nn.Dropout(
             self.model.config.classifier_dropout
             if self.model.config.classifier_dropout is not None
             else self.model.config.hidden_dropout_prob
         )
 
-    # @autocast()  # run in mixed precision
     def forward(self, input_ids, attention_mask, token_type_ids, labels):
         outputs = self.model(input_ids,
                              attention_mask=attention_mask,
@@ -52,12 +44,20 @@ class TransformersSentencePairClassifier(nn.Module):
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
-        loss_fct = CrossEntropyLoss() # Bin
-        loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+        if self.activation == 'sigmoid':
+            logits = torch.sigmoid(logits)
+        elif self.activation == 'softmax':
+            logits = torch.softmax(logits, dim=1)
+        else:
+            raise NotImplementedError
+        loss_fct = eval(self.trainer_config['loss'])()
+
+        labels_one_hot = F.one_hot(labels, num_classes=self.num_labels)
+        loss = loss_fct(logits, labels_one_hot.float())
 
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
             hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
+            attentions=outputs.attentions
         )
