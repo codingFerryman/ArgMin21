@@ -38,8 +38,6 @@ def training(config_path: Union[str, Path], model_class=TransformersSentencePair
     config_name = experiment_config.get("name",  "default")
     output_path = Path(get_project_path(), "models", f"{config_name}_{now}_state.pt")
 
-    if not output_path.exists():
-        output_path.mkdir(parents=True)
     experiment_config["output_dir"] = output_path.as_posix()
     logger.info(f"Output path: {experiment_config['output_dir']}")
 
@@ -81,6 +79,8 @@ def training(config_path: Union[str, Path], model_class=TransformersSentencePair
                 tepoch.set_description(f"Epoch {epoch+1} Training  ")
 
                 # get the inputs
+                _ = batch.pop("arg_id")
+                _ = batch.pop("key_point_id")
                 batch = {k: v.to(device) for k, v in batch.items()}
 
                 # zero the parameter gradients
@@ -106,6 +106,8 @@ def training(config_path: Union[str, Path], model_class=TransformersSentencePair
         with torch.no_grad():
             with tqdm(eval_dataloader, unit=' batch') as tepoch:
                 for idx, batch in enumerate(tepoch):
+                    _ = batch.pop("arg_id")
+                    _ = batch.pop("key_point_id")
                     tepoch.set_description(f"Epoch {epoch+1} Validation")
                     batch = {k: v.to(device) for k, v in batch.items()}
                     outputs = model(**batch)
@@ -121,7 +123,7 @@ def training(config_path: Union[str, Path], model_class=TransformersSentencePair
             epoch_no_improve += 1
             if epoch_no_improve >= trainer_config.get("early_stopping_patience", 1):
                 logger.info("Early Stopped!")
-                torch.save(model.state_dict(), Path(output_path, "model_state.pt"))
+                torch.save(model.state_dict(), Path(output_path))
                 return model, epoch+1, output_path
 
         # Decay Learning Rate

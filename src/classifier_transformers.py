@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from sklearn.metrics import f1_score
+
 from experiment import MyExperiment
 from transformers.modeling_outputs import SequenceClassifierOutput
 from pathlib import Path
@@ -47,13 +49,18 @@ class TransformersSentencePairClassifier(MyExperiment):
         if self.activation == 'sigmoid':
             logits = torch.sigmoid(logits)
         elif self.activation == 'softmax':
-            logits = torch.softmax(logits, dim=1)
+            logits = torch.softmax(logits, dim=1).float()
         else:
             raise NotImplementedError
-        loss_fct = eval(self.trainer_config['loss'])()
 
-        labels_one_hot = F.one_hot(labels, num_classes=self.num_labels)
-        loss = loss_fct(logits, labels_one_hot.float())
+        loss = self.trainer_config['loss']
+        if loss == 'f1':
+            f1 = f1_score(labels, torch.argmax(logits, dim=1).numpy())
+            loss = 1 - f1
+        else:
+            loss_fct = eval(loss)()
+            labels_one_hot = F.one_hot(labels, num_classes=self.num_labels)
+            loss = loss_fct(logits, labels_one_hot.float())
 
         return SequenceClassifierOutput(
             loss=loss,
