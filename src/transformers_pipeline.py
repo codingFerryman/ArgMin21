@@ -94,7 +94,7 @@ def training(config_path: Union[str, Path], val_ratio=0.01):
     activation_fct = trainer_config.pop("activation_fct", "torch.sigmoid")
 
     training_args = TrainingArguments(
-        output_dir=str(output_path),
+        output_dir=str(Path(output_path, 'checkpoints')),
         evaluation_strategy="epoch",
         save_strategy="epoch",
         # metric_for_best_model="eval_f1",
@@ -117,6 +117,9 @@ def training(config_path: Union[str, Path], val_ratio=0.01):
 
     trainer.train()
     trainer.save_model(str(output_path))
+    train_dataset.tokenizer.save_pretrained(str(output_path))
+    with open(Path(output_path, 'training.json'), 'w') as fc:
+        json.dump(config, fc)
     return trainer, output_path
 
 
@@ -135,4 +138,3 @@ def training(config_path: Union[str, Path], val_ratio=0.01):
 #     #     predictions = np.argmax(logits, axis=-1)
 #     #     result[metric] = metric_c.compute(predictions=predictions, references=labels)
 #     # return result
-

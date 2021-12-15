@@ -8,7 +8,7 @@ from sklearn.metrics import *
 from evaluation import predict
 from transformers_pipeline import training
 from utils import print_mem, get_project_path, get_logger
-
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -16,9 +16,8 @@ logger = get_logger("main", "debug")
 
 config_dir = Path(get_project_path(), 'config')
 
-config_file_list = [
-    # "albert-base.json",
-    "roberta-base.json"
+config_or_modelpath_list = [
+    "albert-base.json"
 ]
 
 report_path = Path(Path(__file__).parent.resolve(), "report.csv")
@@ -28,58 +27,54 @@ if Path(report_path).is_file():
 else:
     report_dict = {}
 
-report_args = [
-    "name",
-    "epoch_stop",
-    "threshold",
-    "mode",
-    "acc_dev",
-    "bal_acc_dev",
-    "pre_dev",
-    "rec_dev",
-    "f1_dev",
-    "acc_test",
-    "bal_acc_test",
-    "pre_test",
-    "rec_test",
-    "f1_test",
-    "config_path",
-    "model_path"
-]
-
-for config in config_file_list:
+for config_or_modelpath in config_or_modelpath_list:
     torch.cuda.empty_cache()
-    logger.info(f"Training config: {config}")
-    config_path = Path(config_dir, config)
+    logger.info(f"Training: {config_or_modelpath}")
 
-    with open(config_path, 'r') as fc:
-        experiment_config = json.load(fc)
+    if config_or_modelpath[-5:] == '.json':
+        config_path = Path(config_dir, config_or_modelpath)
 
-    trainer, model_path = training(config_path)
-    model = trainer.model
+        with open(config_path, 'r') as fc:
+            experiment_config = json.load(fc)
 
-    prediction_test_df = predict(model, experiment_config, "test")
-    golden_test, pred_test = prediction_test_df.golden_label, prediction_test_df.prediction
+        trainer, model_path = training(config_path)
+    else:
+        model_path = config_or_modelpath
+        with open(Path(model_path, 'training.json'), 'r') as fc:
+            experiment_config = json.load(fc)
 
-    prediction_dev_df = predict(model, experiment_config, "dev")
+    model = AutoModelForSequenceClassification.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+    with open(Path(model_path, 'state.json'), 'r') as fs:
+        state = json.load(fs)
+
+    prediction_dev_df, experiment_config = predict(model, tokenizer, experiment_config, "dev")
     golden_dev, pred_dev = prediction_dev_df.golden_label, prediction_dev_df.prediction
+    tn_dev, fp_dev, fn_dev, tp_dev = confusion_matrix(golden_dev, pred_dev).ravel()
+
+    prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
+    golden_test, pred_test = prediction_test_df.golden_label, prediction_test_df.prediction
+    tn_test, fp_test, fn_test, tp_test = confusion_matrix(golden_test, pred_test).ravel()
 
     name = experiment_config.get("name", "default")
     model_report = {
         f"{name}": {
-            "epoch_stop": experiment_config["trainer_config"].get("num_train_epochs", 5),
-            "mode": experiment_config['eval_config'].get('mode', 'plain'),
+            "epoch_stop": state['epoch'],
+            "mode": experiment_config['eval_config'].get('mode', 'plain') + str(experiment_config.get('threshold', '')),
             "acc_dev": accuracy_score(golden_dev, pred_dev),
             "bal_acc_dev": balanced_accuracy_score(golden_dev, pred_dev),
-            "pre_dev": precision_score(golden_dev, pred_dev),
-            "rec_dev": recall_score(golden_dev, pred_dev),
             "f1_dev": f1_score(golden_dev, pred_dev),
-            "acc_test":accuracy_score(golden_test, pred_test),
+            "tnr_dev": tn_dev / (tn_dev + fp_dev),
+            "tpr_dev": tp_dev / (tp_dev + fn_dev),
+            "auc_dev": roc_auc_score(golden_dev, pred_dev),
+            "acc_test": accuracy_score(golden_test, pred_test),
             "bal_acc_test": balanced_accuracy_score(golden_test, pred_test),
-            "pre_test": precision_score(golden_test, pred_test),
-            "rec_test": recall_score(golden_test, pred_test),
             "f1_test": f1_score(golden_test, pred_test),
-            "config_path": str(config_path),
+            "tnr_test": tn_test / (tn_test + fp_test),
+            "tpr_test": tp_test / (tp_test + fn_test),
+            "auc_test": roc_auc_score(golden_test, pred_test),
+            # "config_path": str(config_path),
             "model_path": str(model_path)
         }
     }
@@ -87,8 +82,4 @@ for config in config_file_list:
     report_dict.update(model_report)
     report_df = pd.DataFrame.from_dict(report_dict, orient='index')
     report_df.index.name = 'name'
-    report_df.to_csv(report_path)
-
-
-
-
+    report_df.to_csv(report_path, float_format='%.5f')

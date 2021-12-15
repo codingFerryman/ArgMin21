@@ -1,5 +1,5 @@
 from typing import Dict, Callable
-from transformers import AutoModel, AutoConfig, AutoTokenizer
+from transformers import AutoModel, AutoConfig, AutoTokenizer, BertTokenizer, RobertaTokenizer, AlbertTokenizer
 
 
 def model_map(model_config: Dict):
@@ -13,6 +13,13 @@ def model_map(model_config: Dict):
 
 def tokenizer_map(tokenizer_config: Dict):
     if tokenizer_config['type'] == 'transformer':
-        return AutoTokenizer.from_pretrained(tokenizer_config['name_or_path'], use_fast=False)
+        if tokenizer_config['name_or_path'] == 'bert-':
+            return BertTokenizer.from_pretrained(tokenizer_config['name_or_path'])
+        elif tokenizer_config['name_or_path'] == 'roberta-':
+            return RobertaTokenizer.from_pretrained(tokenizer_config['name_or_path'])
+        elif tokenizer_config['name_or_path'] == 'albert-':
+            return AlbertTokenizer.from_pretrained(tokenizer_config['name_or_path'])
+        else:
+            return AutoTokenizer.from_pretrained(tokenizer_config['name_or_path'], use_fast=False)
     else:
         raise NotImplementedError(f"{tokenizer_config['type']} model doesn't be supported")

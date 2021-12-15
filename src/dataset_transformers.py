@@ -54,9 +54,13 @@ def generate_labeled_sentence_pair_df(subset="train"):
 
 
 class TransformersSentencePairDataset(Dataset):
-    def __init__(self, tokenizer_config, subset="train"):
+    def __init__(self, tokenizer_config=None, subset="train", pretrained_tokenizer=None):
+        self.subset = subset
         self.data = generate_labeled_sentence_pair_df(subset=subset)
-        self.tokenizer = tokenizer_map(tokenizer_config)
+        if pretrained_tokenizer is not None:
+            self.tokenizer = pretrained_tokenizer
+        elif tokenizer_config is not None:
+            self.tokenizer = tokenizer_map(tokenizer_config)
         self.tokenizer_config = tokenizer_config.get('args', {})
 
     def __len__(self):
@@ -79,11 +83,19 @@ class TransformersSentencePairDataset(Dataset):
         attn_masks = encoded_pair['attention_mask'].squeeze(0)
         token_type_ids = encoded_pair['token_type_ids'].squeeze(0)
         label = self.data.loc[idx, 'label']
-
-        return {'input_ids': token_ids,
-                'attention_mask': attn_masks,
-                'token_type_ids': token_type_ids,
-                'labels': label,
-                # 'arg_id': arg_id,   # List
-                # 'key_point_id': key_point_id    # List
-                }
+        if self.subset == 'train':
+            return {'input_ids': token_ids,
+                    'attention_mask': attn_masks,
+                    'token_type_ids': token_type_ids,
+                    'labels': label,
+                    # 'arg_id': arg_id,   # List
+                    # 'key_point_id': key_point_id    # List
+                    }
+        else:
+            return {'input_ids': token_ids,
+                    'attention_mask': attn_masks,
+                    'token_type_ids': token_type_ids,
+                    'labels': label,
+                    'arg_id': arg_id,   # List
+                    'key_point_id': key_point_id    # List
+                    }
