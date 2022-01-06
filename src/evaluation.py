@@ -6,8 +6,8 @@ from numpy import argmax
 from tqdm.auto import tqdm
 import torch
 from torch.utils.data import DataLoader
-from sklearn.metrics import roc_curve
-from dataset_transformers import TransformersSentencePairDataset
+from sklearn.metrics import roc_curve, f1_score
+from dataset_hf import TransformersSentencePairDataset
 from utils import get_data_path, get_logger
 
 LOG_LEVEL = "INFO"
@@ -69,36 +69,61 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
         "match_prob": probabilities
     })
 
-    if "th" in mode:
-        if "kp" not in mode:
-            if subset == 'dev':
+    if ("th" in mode) and ("bm" not in mode):
+        if subset == 'dev':
+            if "f1" in mode:
+                thresholds_space = np.logspace(-1., 0., 5000)
+                f1_max = 0.
+                config_threshold = -1.
+                for th in thresholds_space:
+                    _predtions = pd.Series(prediction_df.match_prob >= th).astype(int)
+                    _f1 = f1_score(prediction_df.golden_label, _predtions)
+                    if _f1 > f1_max:
+                        f1_max = _f1
+                        config_threshold = th
+                        prediction_df['prediction'] = _predtions
+                config['threshold'] = config_threshold
+            else:
                 fpr, tpr, thresholds = roc_curve(prediction_df.golden_label, prediction_df.match_prob, pos_label=1)
                 ix = argmax(tpr - fpr)
                 config['threshold'] = thresholds[ix]
                 prediction_df['prediction'] = pd.Series(prediction_df.match_prob >= config['threshold']).astype(int)
-            if subset == 'test':
-                th = config['threshold']
-                prediction_df['prediction'] = pd.Series(prediction_df.match_prob >= th).astype(int)
-            if subset == 'test':
-                _df_list = []
-                for _arg_id in set(arg_id_list):
-                    _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
-                    _df['prediction'] = pd.Series(_df.match_prob >= config['threshold'][_arg_id]).astype(int)
-                    _df_list.append(_df)
-                prediction_df = pd.concat(_df_list)
-        else:
-            raise NotImplementedError
-    elif "bm" in mode:
+        if subset == 'test':
+            th = config['threshold']
+            prediction_df['prediction'] = pd.Series(prediction_df.match_prob >= th).astype(int)
+    elif ("bm" in mode) and ("th" not in mode):
         for _arg_id in set(arg_id_list):
             _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
             _index = _df.sort_values('match_prob', ascending=False).index[0]
             prediction_df.at[_index, 'prediction'] = 1
-    if "bmth" in mode:
-        for _arg_id in set(arg_id_list):
-            _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
-            _index = _df.sort_values('match_prob', ascending=False).index[0]
-            if prediction_df.loc[_index, 'match_prob'] >= config['threshold']:
-                prediction_df.at[_index, 'prediction'] = 1
+    elif "bmth" in mode:
+        if subset == 'dev':
+            thresholds_space = np.linspace(0., 0.1, 100)
+            f1_max = 0.
+            config_threshold = -1.
+            _predictions = prediction_df['prediction'].copy()
+            for th in tqdm(thresholds_space):
+                for _arg_id in set(arg_id_list):
+                    _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
+                    _index = _df.sort_values('match_prob', ascending=False).index[0]
+                    _prob = _df.loc[_index, 'match_prob']
+                    if _prob >= th:
+                        prediction_df.at[_index, 'prediction'] = 1
+                _f1 = f1_score(prediction_df.golden_label, prediction_df.prediction)
+                if _f1 > f1_max:
+                    f1_max = _f1
+                    config_threshold = th
+                    _predictions = prediction_df['prediction'].copy()
+            prediction_df['prediction'] = _predictions
+            config['threshold'] = config_threshold
+        if subset == 'test':
+            th = config['threshold']
+            for _arg_id in set(arg_id_list):
+                _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
+                _index = _df.sort_values('match_prob', ascending=False).index[0]
+                _prob = _df.loc[_index, 'match_prob']
+                if _prob >= th:
+                    prediction_df.at[_index, 'prediction'] = 1
     return prediction_df, config
 
 

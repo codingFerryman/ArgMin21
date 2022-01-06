@@ -6,18 +6,22 @@ from pathlib import Path
 from sklearn.metrics import *
 
 from evaluation import predict
-from transformers_pipeline import training
+from classifier_hf import training
 from utils import print_mem, get_project_path, get_logger
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import os
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 logger = get_logger("main", "debug")
 
 config_dir = Path(get_project_path(), 'config')
 
 config_or_modelpath_list = [
-    "albert-base.json"
+    "roberta-base.json",
+    # "/home/he/Workspace/ArgMin21/models/albert-base_20211215-205308"
+    # "/home/he/Workspace/ArgMin21/models/roberta-base_20211215-145739"
 ]
 
 report_path = Path(Path(__file__).parent.resolve(), "report.csv")
@@ -64,12 +68,16 @@ for config_or_modelpath in config_or_modelpath_list:
             "mode": experiment_config['eval_config'].get('mode', 'plain') + str(experiment_config.get('threshold', '')),
             "acc_dev": accuracy_score(golden_dev, pred_dev),
             "bal_acc_dev": balanced_accuracy_score(golden_dev, pred_dev),
+            "precis_dev": precision_score(golden_dev, pred_dev),
+            "recall_dev": recall_score(golden_dev, pred_dev),
             "f1_dev": f1_score(golden_dev, pred_dev),
             "tnr_dev": tn_dev / (tn_dev + fp_dev),
             "tpr_dev": tp_dev / (tp_dev + fn_dev),
             "auc_dev": roc_auc_score(golden_dev, pred_dev),
             "acc_test": accuracy_score(golden_test, pred_test),
             "bal_acc_test": balanced_accuracy_score(golden_test, pred_test),
+            "precis_test": precision_score(golden_test, pred_test),
+            "recall_test": recall_score(golden_test, pred_test),
             "f1_test": f1_score(golden_test, pred_test),
             "tnr_test": tn_test / (tn_test + fp_test),
             "tpr_test": tp_test / (tp_test + fn_test),
@@ -80,6 +88,6 @@ for config_or_modelpath in config_or_modelpath_list:
     }
 
     report_dict.update(model_report)
-    report_df = pd.DataFrame.from_dict(report_dict, orient='index')
+    report_df = pd.DataFrame.from_dict(report_dict, orient='index').fillna(-1)
     report_df.index.name = 'name'
     report_df.to_csv(report_path, float_format='%.5f')
