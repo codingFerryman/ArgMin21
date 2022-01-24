@@ -12,6 +12,7 @@ psutil
 humanize
 GPUtil
 tqdm
+setuptools==59.5.0
 pytorch-lightning
 
 # package location
