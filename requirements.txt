@@ -2,8 +2,8 @@ GitPython
 pandas
 numpy
 scikit-learn
-torch==1.8.2+cu111
-transformers<4.13
+torch>=1.10.0+cu113
+transformers
 datasets
 matplotlib
 coloredlogs
@@ -15,5 +15,4 @@ tqdm
 pytorch-lightning
 
 # package location
---find-links https://download.pytorch.org/whl/lts/1.8/torch_lts.html
-
+--find-links https://download.pytorch.org/whl/cu113/torch_stable.html
