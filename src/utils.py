@@ -1,14 +1,13 @@
+import logging
+import os
 import random
 from pathlib import Path
-import numpy as np
-import pandas as pd
-import torch
-import logging
-import coloredlogs
-import psutil
-import humanize
+
 import GPUtil
-import os
+import coloredlogs
+import humanize
+import pandas as pd
+import psutil
 from pytorch_lightning import seed_everything
 
 
@@ -39,7 +38,7 @@ def load_kpm_data(gold_data_dir, subset, submitted_kp_file=None, debug=False):
     return arguments_df, key_points_df, labels_file_df
 
 
-def generate_labeled_sentence_pair_df(subset="train"):
+def generate_labeled_sentence_pair_df(subset="train", ratio=1.):
     assert subset in ["train", "dev", "test"]
     if subset == "test":
         gold_data_dir = Path(get_data_path(), 'test_data')
@@ -50,6 +49,13 @@ def generate_labeled_sentence_pair_df(subset="train"):
     kp_df = kp_df[['key_point_id', 'key_point']]
     labels_df = pd.merge(labels_df, arg_df, on='arg_id')
     labels_df = pd.merge(labels_df, kp_df, on='key_point_id')
+
+    if ratio < 1.:
+        all_args = list(set(labels_df.arg_id))
+        num_args = len(all_args)
+        select_num_args = int(num_args * ratio)
+        select_args = random.sample(all_args, select_num_args)
+        labels_df = labels_df[labels_df.arg_id.isin(select_args)].reset_index()
 
     return labels_df[['arg_id', 'argument', 'key_point_id', 'key_point', 'label']]
 
@@ -75,10 +81,6 @@ def get_project_path() -> Path:
 
 def get_data_path() -> Path:
     return Path(get_project_path(), 'data')
-
-
-def get_device():
-    return idist.device()
 
 
 def get_logger(name: str, level='debug'):
