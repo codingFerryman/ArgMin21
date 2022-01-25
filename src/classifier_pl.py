@@ -1,21 +1,15 @@
-from typing import Optional, Any, Dict
+from typing import Any, Dict
 
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
-
-import datasets
 import torch
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import TQDMProgressBar, ModelCheckpoint
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning import LightningModule
+from pytorch_lightning.callbacks import TQDMProgressBar
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 from torch import nn
 from torch.optim import Optimizer
-from transformers import AutoConfig, AutoModelForSequenceClassification, AdamW, get_linear_schedule_with_warmup, \
-    AutoModel
 from tqdm import tqdm
-
-from src.dataset_pl import KPMDataModule
-from utils import set_seed
+from transformers import AutoConfig, AdamW, get_linear_schedule_with_warmup, \
+    AutoModel
 
 AVAIL_GPUS = min(1, torch.cuda.device_count())
 
@@ -36,13 +30,12 @@ class KPMClassifier(LightningModule):
             task_name: str,
             num_labels: int = 1,
             nr_frozen_epochs: int = 0,
-            learning_rate: float = 5e-4,
+            learning_rate: float = 3e-5,
             adam_epsilon: float = 1e-8,
             warmup_steps: int = 0,
             weight_decay: float = 0.1,
-            train_batch_size: int = 32,
+            train_batch_size: int = 16,
             eval_batch_size: int = 16,
-            eval_splits: Optional[list] = None,
             **kwargs,
     ):
         super().__init__()
@@ -69,11 +62,11 @@ class KPMClassifier(LightningModule):
         # self.classifier = nn.Linear(self.model.config.hidden_size, num_labels)
 
         self.pos_threshold = kwargs.get('pos_threshold', 0.5)
-        # self.pos_weight = kwargs.get('pos_weight', None)
-        # # self.loss_fct = nn.BCEWithLogitsLoss(
-        # #     # pos_weight=torch.tensor([self.pos_weight]),
-        # #     pos_weight=torch.tensor([4]),
-        # # )
+        self.pos_weight = kwargs.get('pos_weight', None)
+        self.loss_fct = nn.BCEWithLogitsLoss(
+            # pos_weight=torch.tensor([self.pos_weight]),
+            pos_weight=torch.tensor([4]),
+        )
         # self.loss_fct = nn.CrossEntropyLoss(weight=torch.tensor([1., 3.], device=self.device),)
 
     def on_epoch_start(self):
@@ -99,7 +92,7 @@ class KPMClassifier(LightningModule):
         # outputs = self.model(**inputs)
         # outputs['logits'] = self.classifier(self.dropout(outputs.pooler_output)).view(-1)
 
-        loss = torch.nn.BCEWithLogitsLoss()(
+        loss = self.loss_fct(
             outputs.view(-1),
             labels.type(torch.cuda.FloatTensor)
         )
@@ -130,6 +123,21 @@ class KPMClassifier(LightningModule):
 
         return {"val_loss": val_loss, "preds": preds, "labels": labels, "logits": logits}
 
+    def test_step(self, batch, batch_idx, dataloader_idx=0):
+        test_loss, outputs = self(**batch)
+        self.log('test_loss', test_loss, prog_bar=True)
+
+        logits = outputs
+        logits = torch.sigmoid(logits).view(-1)
+
+        preds = torch.zeros(logits.shape)
+        preds[logits.ge(self.pos_threshold)] = 1.
+        # preds = torch.argmax(logits, axis=1)
+
+        labels = batch["labels"]
+
+        return {"test_loss": test_loss, "preds": preds, "labels": labels, "logits": logits}
+
     def validation_epoch_end(self, outputs):
 
         loss = torch.stack([x["val_loss"] for x in outputs]).mean()
@@ -149,9 +157,11 @@ class KPMClassifier(LightningModule):
         if stage != "fit":
             return
         # Get dataloader by calling it - train_dataloader() is called after setup() by default
-        train_loader = self.trainer.datamodule.train_dataloader()
+        try:
+            train_loader = self.trainer.datamodule.train_dataloader()
+        except:
+            train_loader = self.trainer.datamodule.fit_dataloader()
 
-        # Calculate total steps
         tb_size = self.hparams.train_batch_size * max(1, self.trainer.gpus)
         ab_size = self.trainer.accumulate_grad_batches * float(self.trainer.max_epochs)
         self.total_steps = (len(train_loader.dataset) // tb_size) // ab_size

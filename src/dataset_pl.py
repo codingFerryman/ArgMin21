@@ -1,14 +1,12 @@
-from pathlib import Path
+import os
 from typing import Optional
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
+
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
-from transformers import AutoTokenizer, BatchEncoding, BertTokenizer
+from torch.utils.data import Dataset, DataLoader
+from transformers import AutoTokenizer, BatchEncoding
 
-from src.utils import get_logger, load_kpm_data, generate_labeled_sentence_pair_df
-
-import os
+from src.utils import generate_labeled_sentence_pair_df
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 

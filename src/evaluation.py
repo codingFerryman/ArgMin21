@@ -1,14 +1,13 @@
-from math import sqrt
-
 import numpy as np
 import pandas as pd
-from numpy import argmax
-from tqdm.auto import tqdm
 import torch
-from torch.utils.data import DataLoader
+from numpy import argmax
 from sklearn.metrics import roc_curve, f1_score
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+
 from dataset_hf import TransformersSentencePairDataset
-from utils import get_data_path, get_logger
+from utils import get_logger
 
 LOG_LEVEL = "INFO"
 
@@ -126,11 +125,10 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
                     prediction_df.at[_index, 'prediction'] = 1
     return prediction_df, config
 
-
-if __name__ == '__main__':
-    from src.classifier_transformers import TransformersSentencePairClassifier
-
-    model_c = load_model(
-        "/home/he/Workspace/ArgMin21/models/bert-base BCELoss softmax_20211209-021638_state.pt/model_state.pt",
-        TransformersSentencePairClassifier, config_path="/home/he/Workspace/ArgMin21/config/bert-base_best-match.json")
-    result_c = predict(model_c)
+# if __name__ == '__main__':
+#     from src.classifier_transformers import TransformersSentencePairClassifier
+#
+#     model_c = load_model(
+#         "/home/he/Workspace/ArgMin21/models/bert-base BCELoss softmax_20211209-021638_state.pt/model_state.pt",
+#         TransformersSentencePairClassifier, config_path="/home/he/Workspace/ArgMin21/config/bert-base_best-match.json")
+#     result_c = predict(model_c)
