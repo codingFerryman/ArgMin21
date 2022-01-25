@@ -1,7 +1,7 @@
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Union
-from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -80,7 +80,7 @@ def training(config_path: Union[str, Path]):
         evaluation_strategy="epoch",
         save_strategy="epoch",
         metric_for_best_model="eval_loss",
-        eval_accumulation_steps=10,
+        # eval_accumulation_steps=10,
         load_best_model_at_end=True,
         fp16=True,
         **trainer_config
