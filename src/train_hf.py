@@ -1,15 +1,16 @@
 import json
+import os
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import torch.cuda
-from pathlib import Path
 from sklearn.metrics import *
-
-from evaluation import predict
-from classifier_hf import training
-from utils import print_mem, get_project_path, get_logger
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import os
+
+from classifier_hf import training
+from evaluation import predict
+from utils import get_project_path, get_logger
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -19,12 +20,12 @@ logger = get_logger("main", "debug")
 config_dir = Path(get_project_path(), 'config')
 
 config_or_modelpath_list = [
-    "roberta-base.json",
+    # "/home/he/Workspace/ArgMin21/models/roberta-base BM+TH F1_20220107-125459",
     # "/home/he/Workspace/ArgMin21/models/albert-base_20211215-205308"
-    # "/home/he/Workspace/ArgMin21/models/roberta-base_20211215-145739"
+    "/home/he/Workspace/ArgMin21/models/roberta-base_20211215-145739"
 ]
 
-report_path = Path(Path(__file__).parent.resolve(), "report.csv")
+report_path = Path(Path(__file__).parent.resolve(), "report_new.csv")
 if Path(report_path).is_file():
     _tmp_report_df = pd.read_csv(report_path, index_col='name')
     report_dict = _tmp_report_df.to_dict('index')
@@ -54,34 +55,43 @@ for config_or_modelpath in config_or_modelpath_list:
         state = json.load(fs)
 
     prediction_dev_df, experiment_config = predict(model, tokenizer, experiment_config, "dev")
-    golden_dev, pred_dev = prediction_dev_df.golden_label, prediction_dev_df.prediction
+    golden_dev, pred_dev, match_prob_dev = prediction_dev_df.golden_label, prediction_dev_df.prediction, prediction_dev_df.match_prob
     tn_dev, fp_dev, fn_dev, tp_dev = confusion_matrix(golden_dev, pred_dev).ravel()
 
     prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
-    golden_test, pred_test = prediction_test_df.golden_label, prediction_test_df.prediction
+    golden_test, pred_test, match_prob_test = prediction_test_df.golden_label, prediction_test_df.prediction, prediction_test_df.match_prob
     tn_test, fp_test, fn_test, tp_test = confusion_matrix(golden_test, pred_test).ravel()
+
+    neg_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 0]
+    neg_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 0]
+    neg_true = np.zeros(len(neg_pred), dtype=int)
+    pos_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 1]
+    pos_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 1]
+    pos_true = np.ones(len(pos_pred), dtype=int)
 
     name = experiment_config.get("name", "default")
     model_report = {
         f"{name}": {
             "epoch_stop": state['epoch'],
             "mode": experiment_config['eval_config'].get('mode', 'plain') + str(experiment_config.get('threshold', '')),
-            "acc_dev": accuracy_score(golden_dev, pred_dev),
-            "bal_acc_dev": balanced_accuracy_score(golden_dev, pred_dev),
-            "precis_dev": precision_score(golden_dev, pred_dev),
-            "recall_dev": recall_score(golden_dev, pred_dev),
-            "f1_dev": f1_score(golden_dev, pred_dev),
-            "tnr_dev": tn_dev / (tn_dev + fp_dev),
-            "tpr_dev": tp_dev / (tp_dev + fn_dev),
-            "auc_dev": roc_auc_score(golden_dev, pred_dev),
-            "acc_test": accuracy_score(golden_test, pred_test),
-            "bal_acc_test": balanced_accuracy_score(golden_test, pred_test),
-            "precis_test": precision_score(golden_test, pred_test),
-            "recall_test": recall_score(golden_test, pred_test),
-            "f1_test": f1_score(golden_test, pred_test),
-            "tnr_test": tn_test / (tn_test + fp_test),
-            "tpr_test": tp_test / (tp_test + fn_test),
-            "auc_test": roc_auc_score(golden_test, pred_test),
+            # "acc_dev": accuracy_score(golden_dev, pred_dev),
+            # "bal_acc_dev": balanced_accuracy_score(golden_dev, pred_dev),
+            # "precis_dev": precision_score(golden_dev, pred_dev),
+            # "recall_dev": recall_score(golden_dev, pred_dev),
+            # "f1_dev": f1_score(golden_dev, pred_dev),
+            # "tnr_dev": tn_dev / (tn_dev + fp_dev),
+            # "tpr_dev": tp_dev / (tp_dev + fn_dev),
+            # "auc_dev": roc_auc_score(golden_dev, pred_dev),
+            "acc_neg": accuracy_score(neg_true, neg_pred),
+            "acc_pos": accuracy_score(pos_true, pos_pred),
+            "acc": accuracy_score(golden_test, pred_test),
+            # "prec_pos": precision_score(pos_true, pos_pred),
+            "prec": precision_score(golden_test, pred_test),
+            # "recall_pos": recall_score(pos_true, pos_pred),
+            "recall": recall_score(golden_test, pred_test),
+            "f1_pos": f1_score(pos_true, pos_pred),
+            "f1": f1_score(golden_test, pred_test),
+            "auc": roc_auc_score(golden_test, pred_test),
             # "config_path": str(config_path),
             "model_path": str(model_path)
         }

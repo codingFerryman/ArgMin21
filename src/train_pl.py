@@ -17,14 +17,15 @@ checkpoint_callback = ModelCheckpoint(
 )
 
 trainer = Trainer(
-    max_epochs=100,
+    max_epochs=30,
     precision=16,
     gpus=AVAIL_GPUS,
     # auto_lr_find=True,
     callbacks=[
         bar,
-        EarlyStopping(monitor="val_loss", patience=10)
+        EarlyStopping(monitor="val_loss", patience=5)
     ],
+    # num_sanity_val_steps=0,
     # accelerator="cpu",
     # limit_train_batches=2.0,
     # limit_val_batches=1.0,
