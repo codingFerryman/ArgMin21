@@ -81,20 +81,21 @@ class KPMClassifier(LightningModule):
     def forward(self, **inputs) -> Any:
         labels = inputs.pop('labels', None)
         outputs = self.model(**inputs)
-        outputs = nn.Linear(self.model.config.hidden_size, 256).cuda()(outputs.pooler_output)
-        outputs = self.dropout(outputs)
-        outputs = nn.Linear(256, 128).cuda()(outputs)
-        outputs = self.dropout(outputs)
-        outputs = nn.Linear(128, self.num_labels).cuda()(outputs)
+        # outputs = nn.Linear(self.model.config.hidden_size, self.num_labels).cuda()(outputs.pooler_output)
+        # outputs = self.dropout(outputs)
+        # outputs = nn.Linear(256, 128).cuda()(outputs)
+        # outputs = self.dropout(outputs)
+        # outputs = nn.Linear(128, self.num_labels).cuda()(outputs)
         # loss = self.loss_fct(outputs, labels)
         # # loss = self.loss_fct(outputs.view(-1), labels.type(torch.cuda.FloatTensor))
         # return loss, outputs
         # outputs = self.model(**inputs)
         # outputs['logits'] = self.classifier(self.dropout(outputs.pooler_output)).view(-1)
+        outputs = nn.Linear(self.model.config.hidden_size, self.num_labels).cuda()(outputs.pooler_output)
 
         loss = self.loss_fct(
-            outputs.view(-1),
-            labels.type(torch.cuda.FloatTensor)
+            outputs,
+            nn.functional.one_hot(labels, 2).type(torch.cuda.FloatTensor)
         )
         return loss, outputs
 
