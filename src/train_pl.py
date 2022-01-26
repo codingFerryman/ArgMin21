@@ -5,7 +5,7 @@ from src.classifier_pl import LitProgressBar, AVAIL_GPUS, KPMClassifier
 from src.dataset_pl import KPMDataModule
 from src.utils import set_seed
 
-set_seed(422)
+set_seed(42)
 
 bar = LitProgressBar()
 

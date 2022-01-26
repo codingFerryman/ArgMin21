@@ -28,7 +28,7 @@ class KPMClassifier(LightningModule):
             self,
             model_name_or_path: str,
             task_name: str,
-            num_labels: int = 1,
+            num_labels: int = 2,
             nr_frozen_epochs: int = 0,
             learning_rate: float = 3e-5,
             adam_epsilon: float = 1e-8,
@@ -59,15 +59,15 @@ class KPMClassifier(LightningModule):
             else self.model.config.hidden_dropout_prob
         )
         self.dropout = nn.Dropout(classifier_dropout)
-        # self.classifier = nn.Linear(self.model.config.hidden_size, num_labels)
-
+        self.classifier = nn.Linear(self.model.config.hidden_size, num_labels)
+        #
         self.pos_threshold = kwargs.get('pos_threshold', 0.5)
         self.pos_weight = kwargs.get('pos_weight', None)
-        self.loss_fct = nn.BCEWithLogitsLoss(
-            # pos_weight=torch.tensor([self.pos_weight]),
-            pos_weight=torch.tensor([4]),
-        )
-        # self.loss_fct = nn.CrossEntropyLoss(weight=torch.tensor([1., 3.], device=self.device),)
+        # self.loss_fct = nn.BCEWithLogitsLoss(
+        #     # pos_weight=torch.tensor([self.pos_weight]),
+        #     pos_weight=torch.tensor([4]),
+        # )
+        self.loss_fct = nn.CrossEntropyLoss(weight=torch.tensor([1., 4.], device=self.device), )
 
     def on_epoch_start(self):
         """pytorch lightning hook"""
@@ -96,9 +96,6 @@ class KPMClassifier(LightningModule):
             outputs.view(-1),
             labels.type(torch.cuda.FloatTensor)
         )
-        # pt = torch.exp(-BCE_loss)
-        # F_loss = 0.25 * (1-pt)**2 * BCE_loss
-        # outputs['loss'] = torch.mean(F_loss)
         return loss, outputs
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:

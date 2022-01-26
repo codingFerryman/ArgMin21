@@ -60,12 +60,13 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
             golden_labels.extend(_labels)
             predictions.extend(torch.argmax(_probs, dim=1).cpu().detach().numpy())
 
+
     prediction_df = pd.DataFrame({
         "arg_id": arg_id_list,
         "key_point_id": kp_list,
         "prediction": predictions,
         "golden_label": golden_labels,
-        "match_prob": probabilities
+        "score": probabilities
     })
 
     if ("th" in mode) and ("bm" not in mode):
