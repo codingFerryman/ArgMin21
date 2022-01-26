@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Optional
 
 from pytorch_lightning import LightningDataModule
@@ -92,8 +93,8 @@ class KPMDataModule(LightningDataModule):
         tasks = self.task_name.split(',')
         if 'sentence_pair' in tasks:
             features = self.tokenizer.batch_encode_plus(
-                list(zip(example_dataframe['argument'].str.lower().tolist(),
-                         example_dataframe['key_point'].str.lower().tolist())),
+                list(zip(example_dataframe['argument'].apply(lambda x: self.string_preprocessing(x)).tolist(),
+                         example_dataframe['key_point'].apply(lambda x: self.string_preprocessing(x)).tolist())),
                 add_special_tokens=True,
                 return_token_type_ids=True,
                 return_attention_mask=True,
@@ -106,3 +107,23 @@ class KPMDataModule(LightningDataModule):
             raise NotImplementedError
         features["labels"] = example_dataframe["label"].tolist()
         return features
+
+    @staticmethod
+    def string_preprocessing(text: str):
+        text = text.lower()
+        text = re.sub(r'[^a-zA-Z]', ' ', text)
+        url = re.compile(r'https?://\S+|www\.\S+')
+        text = url.sub(r'', text)
+        html = re.compile(r'<.*?>')
+        text = html.sub(r'', text)
+
+        emoji_pattern = re.compile("["
+                                   u"\U0001F600-\U0001F64F"  # emoticons
+                                   u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                                   u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                                   u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                                   u"\U00002702-\U000027B0"
+                                   u"\U000024C2-\U0001F251"
+                                   "]+", flags=re.UNICODE)
+        text = emoji_pattern.sub(r'', text)
+        return text

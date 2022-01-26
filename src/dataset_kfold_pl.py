@@ -1,4 +1,3 @@
-import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -9,9 +8,8 @@ from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADER
 from sklearn.model_selection import KFold
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset
-from transformers import AutoTokenizer
 
-from src.dataset_pl import KPMDataset
+from src.dataset_pl import KPMDataset, KPMDataModule
 from src.utils import generate_labeled_sentence_pair_df
 
 
@@ -26,7 +24,7 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
 
 
 @dataclass
-class KPMFoldDataModule(BaseKFoldDataModule):
+class KPMFoldDataModule(BaseKFoldDataModule, KPMDataModule):
 
     def __init__(
             self,
@@ -40,56 +38,6 @@ class KPMFoldDataModule(BaseKFoldDataModule):
     ):
         super().__init__()
 
-        self.fit_dataset = None
-        self.test_dataset = None
-
-        self.model_name_or_path = model_name_or_path
-        self.task_name = task_name
-        self.num_labels = num_labels
-        self.max_seq_length = max_seq_length
-        self.train_batch_size = train_batch_size
-        self.eval_batch_size = eval_batch_size
-
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path, use_fast=False)
-
-    @staticmethod
-    def string_preprocessing(text: str):
-        text = text.lower()
-        text = re.sub(r'[^a-zA-Z]', ' ', text)
-        url = re.compile(r'https?://\S+|www\.\S+')
-        text = url.sub(r'', text)
-        html = re.compile(r'<.*?>')
-        text = html.sub(r'', text)
-
-        emoji_pattern = re.compile("["
-                                   u"\U0001F600-\U0001F64F"  # emoticons
-                                   u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-                                   u"\U0001F680-\U0001F6FF"  # transport & map symbols
-                                   u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                                   u"\U00002702-\U000027B0"
-                                   u"\U000024C2-\U0001F251"
-                                   "]+", flags=re.UNICODE)
-        text = emoji_pattern.sub(r'', text)
-        return text
-
-    def convert_to_features(self, example_dataframe):
-        tasks = self.task_name.split(',')
-        if 'sentence_pair' in tasks:
-            features = self.tokenizer.batch_encode_plus(
-                list(zip(example_dataframe['argument'].apply(lambda x: self.string_preprocessing(x)).tolist(),
-                         example_dataframe['key_point'].apply(lambda x: self.string_preprocessing(x)).tolist())),
-                add_special_tokens=True,
-                return_token_type_ids=True,
-                return_attention_mask=True,
-                max_length=self.max_seq_length,
-                padding="max_length",
-                truncation=True,
-                return_tensors='pt'
-            )
-        else:
-            raise NotImplementedError
-        features["labels"] = example_dataframe["label"].tolist()
-        return features
 
     def setup(self, stage: Optional[str] = None) -> None:
         # if stage == 'fit':
@@ -141,11 +89,4 @@ class KPMFoldDataModule(BaseKFoldDataModule):
             batch_size=self.eval_batch_size,
             num_workers=12,
             # shuffle=True
-        )
-
-    def test_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(
-            self.test_dataset,
-            batch_size=self.eval_batch_size,
-            num_workers=12,
         )
