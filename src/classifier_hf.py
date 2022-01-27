@@ -91,6 +91,7 @@ def training(config_path: Union[str, Path]):
 
     training_args = TrainingArguments(
         output_dir=str(Path(output_path, 'checkpoints')),
+        logging_dir=str(Path(output_path, 'logging')),
         logging_strategy="epoch",
         evaluation_strategy="epoch",
         save_strategy="epoch",
