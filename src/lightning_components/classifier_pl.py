@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import numpy as np
 import torch
 from pytorch_lightning import LightningModule
@@ -8,7 +10,6 @@ from torch.optim import Optimizer
 from tqdm import tqdm
 from transformers import AutoConfig, AdamW, get_linear_schedule_with_warmup, \
     AutoModel, AutoModelForSequenceClassification
-from typing import Any, Dict
 
 AVAIL_GPUS = min(1, torch.cuda.device_count())
 

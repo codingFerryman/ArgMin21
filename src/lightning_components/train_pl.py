@@ -1,8 +1,9 @@
+# sys.path.extend(['~/Documents/Workspace/_Activated/argmin21'])
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
-from src.classifier_pl import LitProgressBar, AVAIL_GPUS, KPMClassifier
-from src.dataset_pl import KPMDataModule
+from src.lightning_components.classifier_pl import LitProgressBar, AVAIL_GPUS, KPMClassifier
+from src.lightning_components.dataset_pl import KPMDataModule
 from src.utils import set_seed
 
 set_seed(42)
@@ -20,7 +21,7 @@ trainer = Trainer(
     max_epochs=30,
     precision=16,
     gpus=AVAIL_GPUS,
-    # auto_lr_find=True,
+    auto_lr_find=True,
     callbacks=[
         bar,
         EarlyStopping(monitor="val_loss", patience=5)
@@ -32,7 +33,7 @@ trainer = Trainer(
     # limit_test_batches=10.0
 )
 
-check_model_name = 'bert-base-uncased'
+check_model_name = 'roberta-base'
 
 dm = KPMDataModule(check_model_name)
 dm.setup("fit")

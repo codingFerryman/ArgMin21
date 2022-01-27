@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
+import scipy.special
 import torch
 from numpy import argmax
 from sklearn.metrics import roc_curve, f1_score
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from dataset_hf import TransformersSentencePairDataset
+from dataset_hf import KPADataset
 from utils import get_logger
 
 LOG_LEVEL = "INFO"
@@ -20,7 +21,7 @@ def load_model(path, model_class, **kwargs):
 
 
 def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
-    assert subset in ["test", "dev"]
+    # assert subset in ["test", "dev"]
 
     # Set logger
     logger = get_logger("evaluation", level=LOG_LEVEL)
@@ -35,7 +36,12 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
     logger.debug("Model prepared for evaluation")
 
     # Load data
-    test_dataset = TransformersSentencePairDataset(tokenizer_config, subset, pretrained_tokenizer)
+    test_dataset = KPADataset(
+        tokenizer_name=config['model_name'],
+        tokenizer_config=tokenizer_config,
+        subset=subset,
+        pretrained_tokenizer=pretrained_tokenizer
+    )
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=eval_config.get("batch_size", 1))
     logger.debug("Data prepared for evaluation")
 
@@ -53,13 +59,12 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
             batch = {k: v.to(device) for k, v in batch.items()}
             outputs = pretrained_model(**batch)
             logits = outputs.logits
-            _probs = torch.sigmoid(logits)
-            true_prob = _probs[:, 1].cpu().detach().numpy()
+            _probs = scipy.special.softmax(scipy.special.softmax(logits.detach().cpu().numpy()), axis=1)
+            true_prob = _probs[:, 1]
             probabilities.extend(true_prob)
             _labels = batch['labels'].cpu().detach().numpy()
             golden_labels.extend(_labels)
-            predictions.extend(torch.argmax(_probs, dim=1).cpu().detach().numpy())
-
+            predictions.extend(np.argmax(_probs, axis=1))
 
     prediction_df = pd.DataFrame({
         "arg_id": arg_id_list,
@@ -130,6 +135,6 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
 #     from src.classifier_transformers import TransformersSentencePairClassifier
 #
 #     model_c = load_model(
-#         "/home/he/Workspace/ArgMin21/models/bert-base BCELoss softmax_20211209-021638_state.pt/model_state.pt",
+#         "/home/he/Workspace/ArgMin21/models/bert-base.json BCELoss softmax_20211209-021638_state.pt/model_state.pt",
 #         TransformersSentencePairClassifier, config_path="/home/he/Workspace/ArgMin21/config/bert-base_best-match.json")
 #     result_c = predict(model_c)

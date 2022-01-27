@@ -1,36 +1,46 @@
 import json
-import torch
-import torch.nn as nn
 from datetime import datetime
 from pathlib import Path
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EarlyStoppingCallback
 from typing import Union
 
-from dataset_hf import TransformersSentencePairDataset
+import numpy as np
+import scipy
+import torch
+from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EvalPrediction
+from transformers import EarlyStoppingCallback
+from transformers.integrations import TensorBoardCallback
+
+from dataset_hf import KPADataset
+from evaluate import evaluate
 from utils import get_logger, get_project_path
 
 LOG_LEVEL = "INFO"
 logger = get_logger("training", level=LOG_LEVEL)
 
 
-class KPMTrainer(Trainer):
+#
+# class KPMTrainer(Trainer):
+#
+#     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+#         labels = inputs.get("labels")
+#         # forward pass
+#         outputs = model(**inputs)
+#         logits = outputs.get('logits')
+#         if self.args.past_index >= 0:
+#             self._past = outputs[self.args.past_index]
+#
+#         # compute custom loss
+#         loss_fct = nn.CrossEntropyLoss(weight=torch.tensor([1., 4.], device=logits.device))
+#         loss = loss_fct(logits, labels)
+#         return (loss, outputs) if return_outputs else loss
 
-    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        labels = inputs.get("labels")
-        # forward pass
-        outputs = model(**inputs)
-        logits = outputs.get('logits')
-        if self.args.past_index >= 0:
-            self._past = outputs[self.args.past_index]
 
-        # compute custom loss
-        loss_fct = nn.CrossEntropyLoss(weight=torch.tensor([1., 4.], device=logits.device))
-        loss = loss_fct(logits, labels)
-        return (loss, outputs) if return_outputs else loss
-
-
-def compute_metrics(*args, **kwargs):
-    pass
+def compute_metrics(eval_preds: EvalPrediction):
+    outputs, labels = eval_preds
+    logits = outputs[0]
+    preds = np.argmax(logits, axis=-1)
+    scores = scipy.special.softmax(logits, axis=1)[:, 1]
+    return evaluate(preds, labels, scores)
 
 
 def training(config_path: Union[str, Path]):
@@ -46,31 +56,37 @@ def training(config_path: Union[str, Path]):
     if not output_path.is_dir():
         output_path.mkdir(parents=True)
     trainer_config = config['trainer_config']
+    data_config = config['data_config']
     tokenizer_config = config['tokenizer_config']
-    assert tokenizer_config.get("type") == "transformer"
     model_config = config['model_config']
-    assert model_config.get("type") == "transformer"
-    model_name_or_path = model_config.get("name_or_path")
+    model_name = config.get("model_name")
 
     model = AutoModelForSequenceClassification.from_pretrained(
-        model_name_or_path,
+        model_name,
         num_labels=2,
-        **model_config.get("args")
+        output_attentions=True,
+        output_hidden_states=True,
+        **model_config
     )
 
-    train_dataset = TransformersSentencePairDataset(
+    train_dataset = KPADataset(
+        model_name,
         tokenizer_config=tokenizer_config,
-        subset="train"
+        subset="train",
+        **data_config
     )
 
-    val_dataset = TransformersSentencePairDataset(
+    val_dataset = KPADataset(
+        model_name,
         tokenizer_config=tokenizer_config,
-        subset="dev"
+        subset="dev",
+        **data_config
     )
 
     callbacks = [
         EarlyStoppingCallback(trainer_config.pop('early_stopping_patience', 5),
-                              trainer_config.pop('early_stopping_threshold', 0.))
+                              trainer_config.pop('early_stopping_threshold', 0.)),
+        TensorBoardCallback()
     ]
 
     training_args = TrainingArguments(
@@ -78,10 +94,8 @@ def training(config_path: Union[str, Path]):
         logging_strategy="epoch",
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        metric_for_best_model="eval_loss",
-        # eval_accumulation_steps=10,
+        eval_accumulation_steps=10,
         load_best_model_at_end=True,
-        fp16=True,
         **trainer_config
     )
 
@@ -89,14 +103,14 @@ def training(config_path: Union[str, Path]):
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        # eval_dataset=val_dataset,
+        eval_dataset=val_dataset,
         compute_metrics=compute_metrics,
         callbacks=callbacks,
     )
 
     trainer.train()
     trainer.save_model(str(output_path))
-    trainer.save_state()
+    # trainer.save_state()
     trainer.state.save_to_json(str(Path(output_path, 'state.json')))
     train_dataset.tokenizer.save_pretrained(str(output_path))
     with open(Path(output_path, 'training.json'), 'w') as fc:

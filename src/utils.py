@@ -1,17 +1,24 @@
-import GPUtil
-import coloredlogs
-import humanize
 import logging
 import os
-import pandas as pd
-import psutil
 import random
 import re
 from pathlib import Path
+
+import GPUtil
+import coloredlogs
+import humanize
+import pandas as pd
+import psutil
 from pytorch_lightning import seed_everything
 
 
-def load_kpm_data(gold_data_dir, subset, submitted_kp_file=None, debug=False):
+def load_kpm_data(gold_data_dir=None, subset='train', submitted_kp_file=None):
+    if gold_data_dir is None:
+        if subset != 'test':
+            gold_data_dir = Path(get_data_path(), 'kpm_data')
+        else:
+            gold_data_dir = Path(get_data_path(), 'test_data')
+
     get_logger(f"Loading {subset} data:")
     arguments_file = Path(gold_data_dir, f"arguments_{subset}.csv")
     if not submitted_kp_file:
@@ -20,14 +27,9 @@ def load_kpm_data(gold_data_dir, subset, submitted_kp_file=None, debug=False):
         key_points_file = submitted_kp_file
     labels_file = Path(gold_data_dir, f"labels_{subset}.csv")
 
-    if (debug is True) and (subset != "test"):
-        arguments_df = pd.read_csv(arguments_file).sample(frac=0.5)
-        key_points_df = pd.read_csv(key_points_file).sample(frac=0.5)
-        labels_file_df = pd.read_csv(labels_file).sample(frac=0.5)
-    else:
-        arguments_df = pd.read_csv(arguments_file)
-        key_points_df = pd.read_csv(key_points_file)
-        labels_file_df = pd.read_csv(labels_file)
+    arguments_df = pd.read_csv(arguments_file)
+    key_points_df = pd.read_csv(key_points_file)
+    labels_file_df = pd.read_csv(labels_file)
 
     # for desc, group in arguments_df.groupby(["stance", "topic"]):
     #     stance = desc[0]
@@ -58,14 +60,14 @@ def string_preprocessing(text: str):
     return text
 
 
-def generate_labeled_sentence_pair_df(subset="train", ratio=1.):
+def generate_combined_df(subset="train", ratio=1.):
     assert subset in ["train", "dev", "test"]
     if subset == "test":
         gold_data_dir = Path(get_data_path(), 'test_data')
     else:
         gold_data_dir = Path(get_data_path(), 'kpm_data')
     arg_df, kp_df, labels_df = load_kpm_data(gold_data_dir, subset=subset)
-    arg_df = arg_df[['arg_id', 'argument']]
+    # arg_df = arg_df[['arg_id', 'argument']]
     kp_df = kp_df[['key_point_id', 'key_point']]
     labels_df = pd.merge(labels_df, arg_df, on='arg_id')
     labels_df = pd.merge(labels_df, kp_df, on='key_point_id')
@@ -77,7 +79,7 @@ def generate_labeled_sentence_pair_df(subset="train", ratio=1.):
         select_args = random.sample(all_args, select_num_args)
         labels_df = labels_df[labels_df.arg_id.isin(select_args)].reset_index()
 
-    return labels_df[['arg_id', 'argument', 'key_point_id', 'key_point', 'label']]
+    return labels_df[['arg_id', 'argument', 'key_point_id', 'key_point', 'topic', 'stance', 'label']]
 
 
 def set_seed(seed: int = 42):

@@ -9,8 +9,8 @@ from sklearn.model_selection import KFold
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset
 
-from src.dataset_pl import KPMDataset, KPMDataModule
-from src.utils import generate_labeled_sentence_pair_df
+from src.lightning_components.dataset_pl import KPMDataset, KPMDataModule
+from src.utils import generate_combined_df
 
 
 class BaseKFoldDataModule(LightningDataModule, ABC):
@@ -41,14 +41,14 @@ class KPMFoldDataModule(BaseKFoldDataModule, KPMDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         # if stage == 'fit':
-        train_pair_df = generate_labeled_sentence_pair_df('train')
+        train_pair_df = generate_combined_df('train')
         # self.train_dataset = KPMDataset(self.convert_to_features(train_pair_df))
-        val_pair_df = generate_labeled_sentence_pair_df('dev')
+        val_pair_df = generate_combined_df('dev')
         # self.val_dataset = KPMDataset(self.convert_to_features(val_pair_df))
         self.fit_pair_df = pd.concat([train_pair_df, val_pair_df])
         self.fit_dataset = KPMDataset(self.convert_to_features(self.fit_pair_df))
         # if stage == 'test':
-        test_pair_df = generate_labeled_sentence_pair_df('test')
+        test_pair_df = generate_combined_df('test')
         self.test_dataset = KPMDataset(self.convert_to_features(test_pair_df))
 
     def setup_folds(self, num_folds: int = 5) -> None:

@@ -1,11 +1,12 @@
 import os
+from typing import Optional
+
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, BatchEncoding
-from typing import Optional
 
-from src.utils import generate_labeled_sentence_pair_df, string_preprocessing
+from src.utils import generate_combined_df, string_preprocessing
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
@@ -53,19 +54,19 @@ class KPMDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         if stage == 'fit':
-            train_pair_df = generate_labeled_sentence_pair_df('train')
+            train_pair_df = generate_combined_df('train')
             self.train_dataset = KPMDataset(self.convert_to_features(train_pair_df))
-            val_pair_df = generate_labeled_sentence_pair_df('dev')
+            val_pair_df = generate_combined_df('dev')
             self.val_dataset = KPMDataset(self.convert_to_features(val_pair_df))
         if stage == 'test':
-            test_pair_df = generate_labeled_sentence_pair_df('test')
+            test_pair_df = generate_combined_df('test')
             self.test_dataset = KPMDataset(self.convert_to_features(test_pair_df))
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
         return DataLoader(
             self.train_dataset,
             batch_size=self.train_batch_size,
-            num_workers=12,
+            # num_workers=12,
             shuffle=True
         )
 
@@ -73,7 +74,7 @@ class KPMDataModule(LightningDataModule):
         return DataLoader(
             self.val_dataset,
             batch_size=self.eval_batch_size,
-            num_workers=12,
+            # num_workers=12,
             # shuffle=True
         )
 
