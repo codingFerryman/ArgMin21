@@ -94,7 +94,6 @@ def training(config_path: Union[str, Path]):
         logging_strategy="epoch",
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        eval_accumulation_steps=10,
         load_best_model_at_end=True,
         **trainer_config
     )
