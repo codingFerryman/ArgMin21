@@ -1,11 +1,9 @@
-import pandas as pd
-import torch
-from pathlib import Path
+from torch.utils.data import Dataset
 
 from torch.utils.data import Dataset
 
-from utils import get_data_path, get_logger, generate_labeled_sentence_pair_df
 from config_map import tokenizer_map
+from utils import get_logger, generate_labeled_sentence_pair_df, string_preprocessing
 
 LOG_LEVEL = "INFO"
 logger = get_logger("dataset", level=LOG_LEVEL)
@@ -25,8 +23,8 @@ class TransformersSentencePairDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        arg_sentence = str(self.data.loc[idx, 'argument']).lower()
-        key_sentence = str(self.data.loc[idx, 'key_point']).lower()
+        arg_sentence = self.text_preprocessing(str(self.data.loc[idx, 'argument']))
+        key_sentence = self.text_preprocessing(str(self.data.loc[idx, 'key_point']))
         arg_id = self.data.loc[idx, 'arg_id']
         key_point_id = self.data.loc[idx, 'key_point_id']
 
@@ -57,3 +55,7 @@ class TransformersSentencePairDataset(Dataset):
                 'arg_id': arg_id,  # List
                 'key_point_id': key_point_id  # List
             }
+
+    @staticmethod
+    def text_preprocessing(text: str):
+        return string_preprocessing(text)

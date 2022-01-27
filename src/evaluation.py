@@ -76,7 +76,7 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
                 f1_max = 0.
                 config_threshold = -1.
                 for th in thresholds_space:
-                    _predtions = pd.Series(prediction_df.match_prob >= th).astype(int)
+                    _predtions = pd.Series(prediction_df.score >= th).astype(int)
                     _f1 = f1_score(prediction_df.golden_label, _predtions)
                     if _f1 > f1_max:
                         f1_max = _f1
@@ -84,17 +84,17 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
                         prediction_df['prediction'] = _predtions
                 config['threshold'] = config_threshold
             else:
-                fpr, tpr, thresholds = roc_curve(prediction_df.golden_label, prediction_df.match_prob, pos_label=1)
+                fpr, tpr, thresholds = roc_curve(prediction_df.golden_label, prediction_df.score, pos_label=1)
                 ix = argmax(tpr - fpr)
                 config['threshold'] = thresholds[ix]
-                prediction_df['prediction'] = pd.Series(prediction_df.match_prob >= config['threshold']).astype(int)
+                prediction_df['prediction'] = pd.Series(prediction_df.score >= config['threshold']).astype(int)
         if subset == 'test':
             th = config['threshold']
-            prediction_df['prediction'] = pd.Series(prediction_df.match_prob >= th).astype(int)
+            prediction_df['prediction'] = pd.Series(prediction_df.score >= th).astype(int)
     elif ("bm" in mode) and ("th" not in mode):
         for _arg_id in set(arg_id_list):
             _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
-            _index = _df.sort_values('match_prob', ascending=False).index[0]
+            _index = _df.sort_values('score', ascending=False).index[0]
             prediction_df.at[_index, 'prediction'] = 1
     elif "bmth" in mode:
         if subset == 'dev':
@@ -105,8 +105,8 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
             for th in tqdm(thresholds_space):
                 for _arg_id in set(arg_id_list):
                     _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
-                    _index = _df.sort_values('match_prob', ascending=False).index[0]
-                    _prob = _df.loc[_index, 'match_prob']
+                    _index = _df.sort_values('score', ascending=False).index[0]
+                    _prob = _df.loc[_index, 'score']
                     if _prob >= th:
                         prediction_df.at[_index, 'prediction'] = 1
                 _f1 = f1_score(prediction_df.golden_label, prediction_df.prediction)
@@ -120,8 +120,8 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
             th = config['threshold']
             for _arg_id in set(arg_id_list):
                 _df = prediction_df[prediction_df.arg_id == _arg_id].copy()
-                _index = _df.sort_values('match_prob', ascending=False).index[0]
-                _prob = _df.loc[_index, 'match_prob']
+                _index = _df.sort_values('score', ascending=False).index[0]
+                _prob = _df.loc[_index, 'score']
                 if _prob >= th:
                     prediction_df.at[_index, 'prediction'] = 1
     return prediction_df, config

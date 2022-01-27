@@ -1,10 +1,9 @@
 import json
-import os
-from pathlib import Path
-
 import numpy as np
+import os
 import pandas as pd
 import torch.cuda
+from pathlib import Path
 from sklearn.metrics import *
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -20,9 +19,10 @@ logger = get_logger("main", "debug")
 config_dir = Path(get_project_path(), 'config')
 
 config_or_modelpath_list = [
+    "roberta-base.json"
     # "/home/he/Workspace/ArgMin21/models/roberta-base BM+TH F1_20220107-125459",
     # "/home/he/Workspace/ArgMin21/models/albert-base_20211215-205308"
-    "/home/he/Workspace/ArgMin21/models/roberta-base_20211215-145739"
+    # "/home/he/Workspace/ArgMin21/models/roberta-base_20211215-145739"
 ]
 
 report_path = Path(Path(__file__).parent.resolve(), "report_new.csv")

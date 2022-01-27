@@ -25,7 +25,7 @@ trainer = Trainer(
         bar,
         EarlyStopping(monitor="val_loss", patience=5)
     ],
-    # num_sanity_val_steps=0,
+    num_sanity_val_steps=0,
     # accelerator="cpu",
     # limit_train_batches=2.0,
     # limit_val_batches=1.0,
@@ -37,5 +37,13 @@ check_model_name = 'bert-base-uncased'
 dm = KPMDataModule(check_model_name)
 dm.setup("fit")
 
-dm_model = KPMClassifier(check_model_name, num_labels=1, task_name='sentence_pair')
+dm_model = KPMClassifier(
+    check_model_name,
+    customized_layers=False,
+    num_labels=2,
+    task_name='kp_topic_pair',
+    learning_rate=3e-5,
+    loss_fct=None,
+    pos_weight=1.
+)
 trainer.fit(dm_model, dm)

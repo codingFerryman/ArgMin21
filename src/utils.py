@@ -1,13 +1,13 @@
-import logging
-import os
-import random
-from pathlib import Path
-
 import GPUtil
 import coloredlogs
 import humanize
+import logging
+import os
 import pandas as pd
 import psutil
+import random
+import re
+from pathlib import Path
 from pytorch_lightning import seed_everything
 
 
@@ -36,6 +36,26 @@ def load_kpm_data(gold_data_dir, subset, submitted_kp_file=None, debug=False):
     #     print(f"\t{desc}: loaded {len(group)} arguments and {len(key_points)} key points")
     # print("\n")
     return arguments_df, key_points_df, labels_file_df
+
+
+def string_preprocessing(text: str):
+    text = text.lower()
+    text = re.sub(r'[^a-zA-Z]', ' ', text)
+    url = re.compile(r'https?://\S+|www\.\S+')
+    text = url.sub(r'', text)
+    html = re.compile(r'<.*?>')
+    text = html.sub(r'', text)
+
+    emoji_pattern = re.compile("["
+                               u"\U0001F600-\U0001F64F"  # emoticons
+                               u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                               u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                               u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                               u"\U00002702-\U000027B0"
+                               u"\U000024C2-\U0001F251"
+                               "]+", flags=re.UNICODE)
+    text = emoji_pattern.sub(r'', text)
+    return text
 
 
 def generate_labeled_sentence_pair_df(subset="train", ratio=1.):

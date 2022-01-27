@@ -86,17 +86,19 @@ def training(config_path: Union[str, Path]):
         **trainer_config
     )
 
-    trainer = KPMTrainer(
+    trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=val_dataset,
+        # eval_dataset=val_dataset,
         compute_metrics=compute_metrics,
         callbacks=callbacks,
     )
 
     trainer.train()
     trainer.save_model(str(output_path))
+    trainer.save_state()
+    trainer.state.save_to_json(str(Path(output_path, 'state.json')))
     train_dataset.tokenizer.save_pretrained(str(output_path))
     with open(Path(output_path, 'training.json'), 'w') as fc:
         json.dump(config, fc)
