@@ -1,11 +1,10 @@
 import json
-from datetime import datetime
-from pathlib import Path
-from typing import Union
-
 import torch
 import torch.nn as nn
+from datetime import datetime
+from pathlib import Path
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EarlyStoppingCallback
+from typing import Union
 
 from dataset_hf import TransformersSentencePairDataset
 from utils import get_logger, get_project_path

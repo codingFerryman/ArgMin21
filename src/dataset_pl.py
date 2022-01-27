@@ -1,13 +1,11 @@
 import os
-import re
-from typing import Optional
-
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, BatchEncoding
+from typing import Optional
 
-from src.utils import generate_labeled_sentence_pair_df
+from src.utils import generate_labeled_sentence_pair_df, string_preprocessing
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
