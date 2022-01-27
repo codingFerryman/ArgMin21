@@ -23,8 +23,6 @@ config_dir = Path(get_project_path(), 'config')
 # Configurations
 # ============================================
 
-submission_file_path = './submission.csv'
-
 config_or_modelpath_list = [
     "roberta-base.json"
     # "/home/he/Workspace/ArgMin21/models/roberta-base BM+TH F1_20220107-125459",
