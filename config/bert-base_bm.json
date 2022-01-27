@@ -1,7 +1,7 @@
 {
-  "name": "roberta-base bm",
+  "name": "bert-base bm",
   "seed": 42,
-  "model_name": "roberta-base",
+  "model_name": "bert-base-uncased",
   "data_config": {
     "load_ratio": 1,
     "add_info": null
