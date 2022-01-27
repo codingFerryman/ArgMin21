@@ -1,7 +1,7 @@
 {
-  "name": "roberta-large plain",
+  "name": "roberta-base plain",
   "seed": 42,
-  "model_name": "roberta-large",
+  "model_name": "roberta-base",
   "data_config": {
     "load_ratio": 1,
     "add_info": null
