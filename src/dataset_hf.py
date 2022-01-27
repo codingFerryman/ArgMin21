@@ -77,13 +77,16 @@ class KPADataset(Dataset):
                 preprocessed_text = self.text_preprocessing(str(self.data.loc[idx, info]))
                 if info == 'topic' and incl_stance:
                     preprocessed_text = preprocessed_text + stance
+                tokenizer_config = self.tokenizer_config
+                if info == 'topic':
+                    tokenizer_config.update({"max_length": 10})
                 encoded = self.tokenizer.encode_plus(
                     preprocessed_text,
                     return_token_type_ids=True,
                     return_attention_mask=True,
                     padding='max_length',
                     truncation=True,
-                    **self.tokenizer_config
+                    **tokenizer_config
                 )
                 token_ids = torch.cat([token_ids, encoded['input_ids'].squeeze(0)])
                 attn_masks = torch.cat([attn_masks, encoded['attention_mask'].squeeze(0)])
