@@ -8,7 +8,6 @@ import scipy
 import torch
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EvalPrediction
 from transformers import EarlyStoppingCallback
-from transformers.integrations import TensorBoardCallback
 
 from dataset_hf import KPADataset
 from evaluate import evaluate
@@ -86,7 +85,7 @@ def training(config_path: Union[str, Path]):
     callbacks = [
         EarlyStoppingCallback(trainer_config.pop('early_stopping_patience', 5),
                               trainer_config.pop('early_stopping_threshold', 0.)),
-        TensorBoardCallback()
+        # TensorBoardCallback()
     ]
 
     training_args = TrainingArguments(
