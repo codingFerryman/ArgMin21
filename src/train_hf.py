@@ -57,6 +57,8 @@ for config_or_modelpath in config_or_modelpath_list:
         with open(Path(model_path, 'training.json'), 'r') as fc:
             experiment_config = json.load(fc)
 
+    name = experiment_config.get("name", "default")
+
     model = AutoModelForSequenceClassification.from_pretrained(model_path)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
 
@@ -70,6 +72,7 @@ for config_or_modelpath in config_or_modelpath_list:
     # prediction_dev_df, experiment_config = predict(model, tokenizer, experiment_config, "dev")
     # golden_dev, pred_dev, match_prob_dev = prediction_dev_df.golden_label, prediction_dev_df.prediction, prediction_dev_df.score
     # # tn_dev, fp_dev, fn_dev, tp_dev = confusion_matrix(golden_dev, pred_dev).ravel()
+    submission_file_path = "./" + name + ".json"
 
     prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
     generate_submission(prediction_test_df, submission_file_path)
@@ -84,7 +87,6 @@ for config_or_modelpath in config_or_modelpath_list:
     pos_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 1]
     pos_true = np.ones(len(pos_pred), dtype=int)
 
-    name = experiment_config.get("name", "default")
     model_report = {
         f"{name}": {
             "epoch_stop": state['epoch'],
@@ -93,8 +95,8 @@ for config_or_modelpath in config_or_modelpath_list:
             "mAP_relaxed": mAP_relaxed
         }
     }
-    model_report.update(evaluate(pred_test, golden_test, match_prob_test))
-    model_report.update({"model_path": str(model_path)})
+    model_report[name].update(evaluate(pred_test, golden_test, match_prob_test))
+    model_report[name].update({"model_path": str(model_path)})
 
     # ============================================
     # Performance Report

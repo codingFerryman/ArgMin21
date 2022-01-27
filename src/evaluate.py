@@ -39,7 +39,7 @@ def generate_submission(pred_df, output_file='./submission.csv'):
 
 
 def calc_map(submission_file):
-    arg_df, kp_df, label_df = load_kpm_data(subset="test")
+    arg_df, kp_df, label_df = load_kpm_data(subset="dev")
     df = get_predictions(submission_file, label_df, arg_df, kp_df)
     mAP_strict, mAP_relaxed = evaluate_predictions(df)
     return mAP_strict, mAP_relaxed
