@@ -1,9 +1,9 @@
 {
-  "name": "roberta-base",
+  "name": "bert-base-uncased",
   "seed": 42,
   "model_config": {
     "type": "transformer",
-    "name_or_path": "roberta-base",
+    "name_or_path": "bert-base-uncased",
     "args": {
       "output_attentions": true,
       "output_hidden_states": true

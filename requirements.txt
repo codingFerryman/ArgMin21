@@ -2,7 +2,7 @@ GitPython
 pandas
 numpy
 scikit-learn
-torch==1.8.2+cu111
+torch<1.9+cu111
 transformers<4.12
 datasets
 matplotlib
