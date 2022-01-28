@@ -110,7 +110,7 @@ for config_or_modelpath in config_or_modelpath_list:
     # Performance Report
     # ============================================
 
-    report_path = Path(Path(__file__).parent.resolve(), "report.csv")
+    report_path = Path('.', "report.csv")
     if Path(report_path).is_file():
         _tmp_report_df = pd.read_csv(report_path, index_col='name')
         report_dict = _tmp_report_df.to_dict('index')
