@@ -1,10 +1,10 @@
 {
-  "name": "roberta-large",
+  "name": "roberta-large+topic",
   "seed": 42,
   "model_name": "roberta-large",
   "data_config": {
     "load_ratio": 1,
-    "add_info": null
+    "add_info": "topic"
   },
   "model_config": {
   },

@@ -1,10 +1,10 @@
 {
-  "name": "bert-base",
+  "name": "bert-base+topic",
   "seed": 42,
   "model_name": "bert-base-uncased",
   "data_config": {
     "load_ratio": 1,
-    "add_info": null
+    "add_info": "topic"
   },
   "model_config": {
   },

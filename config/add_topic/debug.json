@@ -1,5 +1,5 @@
 {
-  "name": "roberta-base add topic",
+  "name": "DEBUG roberta-base+topic",
   "seed": 42,
   "model_name": "roberta-base",
   "data_config": {
