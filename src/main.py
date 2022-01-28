@@ -19,7 +19,8 @@ def main(args: List[str]):
     argv = {a.split('=')[0]: a.split('=')[1] for a in args[1:]}
     config_or_modelpath = argv.get('model', None)
     assert config_or_modelpath is not None
-    experiment_report = run(config_or_modelpath, cuda_device="0")
+    cuda_device = argv.get('cuda', "0")
+    experiment_report = run(config_or_modelpath, cuda_device=cuda_device)
     report(experiment_report)
 
 
