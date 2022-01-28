@@ -29,7 +29,9 @@ class KPADataset(Dataset):
             self.data = data
         else:
             self.subset = subset
-            self.data = generate_combined_df(self.subset, ratio=load_ratio)
+            if subset == 'eval':
+                subset = 'dev'
+            self.data = generate_combined_df(subset, ratio=load_ratio)
 
         if pretrained_tokenizer is not None:
             self.tokenizer = pretrained_tokenizer
@@ -95,23 +97,32 @@ class KPADataset(Dataset):
         arg_id = self.data.loc[idx, 'arg_id']
         key_point_id = self.data.loc[idx, 'key_point_id']
 
-        label = self.data.loc[idx, 'label']
         if self.subset == 'test':
             return {
                 'input_ids': token_ids,
                 'attention_mask': attn_masks,
                 'token_type_ids': token_type_ids,
-                'labels': label,
                 'arg_id': arg_id,  # List
                 'key_point_id': key_point_id  # List
             }
         else:
-            return {
-                'input_ids': token_ids,
-                'attention_mask': attn_masks,
-                'token_type_ids': token_type_ids,
-                'labels': label
-            }
+            label = self.data.loc[idx, 'label']
+            if self.subset == 'eval':
+                return {
+                    'input_ids': token_ids,
+                    'attention_mask': attn_masks,
+                    'token_type_ids': token_type_ids,
+                    'labels': label,
+                    'arg_id': arg_id,  # List
+                    'key_point_id': key_point_id  # List
+                }
+            else:
+                return {
+                    'input_ids': token_ids,
+                    'attention_mask': attn_masks,
+                    'token_type_ids': token_type_ids,
+                    'labels': label
+                }
 
     @staticmethod
     def text_preprocessing(text: str):

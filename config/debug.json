@@ -24,6 +24,7 @@
     "fp16": true
   },
   "eval_config": {
-    "mode": "plain"
+    "mode": "plain",
+    "batch_size": 64
   }
 }

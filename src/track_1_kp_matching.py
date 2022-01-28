@@ -88,6 +88,11 @@ def load_predictions(predictions_dir, correct_kp_list):
         print(f"\tloaded predictions for {len(arg)} arguments")
         return pd.DataFrame({"arg_id": arg, "key_point_id": kp, "score": scores})
 
+
+def extract_topic(text: str) -> int:
+    topic_id = text.split("_")[1]
+    return int(topic_id)
+
 # if __name__ == "__main__":
 #     if len(sys.argv) != 3:
 #         print("You must specify two parameters for this scripts: input data directory and the predictions file")

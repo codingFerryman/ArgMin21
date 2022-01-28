@@ -9,6 +9,7 @@ import coloredlogs
 import humanize
 import pandas as pd
 import psutil
+import torch
 from pytorch_lightning import seed_everything
 
 
@@ -25,18 +26,14 @@ def load_kpm_data(gold_data_dir=None, subset='train', submitted_kp_file=None):
         key_points_file = Path(gold_data_dir, f"key_points_{subset}.csv")
     else:
         key_points_file = submitted_kp_file
-    labels_file = Path(gold_data_dir, f"labels_{subset}.csv")
 
     arguments_df = pd.read_csv(arguments_file)
     key_points_df = pd.read_csv(key_points_file)
+
+    # Please be aware that this file is not available during workshop
+    labels_file = Path(gold_data_dir, f"labels_{subset}.csv")
     labels_file_df = pd.read_csv(labels_file)
 
-    # for desc, group in arguments_df.groupby(["stance", "topic"]):
-    #     stance = desc[0]
-    #     topic = desc[1]
-    #     key_points = key_points_df[(key_points_df["stance"] == stance) & (key_points_df["topic"] == topic)]
-    #     print(f"\t{desc}: loaded {len(group)} arguments and {len(key_points)} key points")
-    # print("\n")
     return arguments_df, key_points_df, labels_file_df
 
 
@@ -64,6 +61,7 @@ def generate_combined_df(subset="train", ratio=1.):
     assert subset in ["train", "dev", "test"]
     if subset == "test":
         gold_data_dir = Path(get_data_path(), 'test_data')
+        return _generate_combined_df_test(gold_data_dir)
     else:
         gold_data_dir = Path(get_data_path(), 'kpm_data')
     arg_df, kp_df, labels_df = load_kpm_data(gold_data_dir, subset=subset)
@@ -80,6 +78,24 @@ def generate_combined_df(subset="train", ratio=1.):
         labels_df = labels_df[labels_df.arg_id.isin(select_args)].reset_index()
 
     return labels_df[['arg_id', 'argument', 'key_point_id', 'key_point', 'topic', 'stance', 'label']]
+
+
+def _generate_combined_df_test(data_dir):
+    arg_df, kp_df, _ = load_kpm_data(data_dir, subset='test')
+    arg_df["topic_id"] = arg_df["arg_id"].map(extract_topic)
+    kp_df["topic_id"] = kp_df["key_point_id"].map(extract_topic)
+    merged_df = pd.merge(arg_df, kp_df, how="left", on=["topic", "stance", "topic_id"])
+    merged_df['label'] = None
+    return merged_df[['arg_id', 'argument', 'key_point_id', 'key_point', 'topic', 'stance', 'label']]
+
+
+def extract_topic(text: str) -> int:
+    topic_id = text.split("_")[1]
+    return int(topic_id)
+
+
+def get_device():
+    return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 def set_seed(seed: int = 42):

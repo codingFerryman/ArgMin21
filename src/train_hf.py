@@ -2,7 +2,6 @@ import json
 import os
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import torch.cuda
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -24,10 +23,11 @@ config_dir = Path(get_project_path(), 'config')
 # ============================================
 
 config_or_modelpath_list = [
-    "roberta-base.json"
-    # "/home/he/Workspace/ArgMin21/models/roberta-base BM+TH F1_20220107-125459",
-    # "/home/he/Workspace/ArgMin21/models/albert-base_20211215-205308"
-    # "/home/he/Workspace/ArgMin21/models/roberta-base_20211215-145739"
+    "basic/roberta-base.json",
+    "basic/roberta-large.json",
+    "basic/bert-base.json",
+    "basic/bert-large.json"
+    "basic/albert-base.json"
 ]
 
 for config_or_modelpath in config_or_modelpath_list:
@@ -64,36 +64,46 @@ for config_or_modelpath in config_or_modelpath_list:
         state = json.load(fs)
 
     # ============================================
-    # Predict and evaluate
+    # Evaluate, predict, and report
     # ============================================
-    #
-    # prediction_dev_df, experiment_config = predict(model, tokenizer, experiment_config, "dev")
-    # golden_dev, pred_dev, match_prob_dev = prediction_dev_df.golden_label, prediction_dev_df.prediction, prediction_dev_df.score
-    # # tn_dev, fp_dev, fn_dev, tp_dev = confusion_matrix(golden_dev, pred_dev).ravel()
-    submission_file_path = "./" + name + ".json"
 
-    prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
-    generate_submission(prediction_test_df, submission_file_path)
-    mAP_strict, mAP_relaxed = calc_map(submission_file_path)
-    golden_test, pred_test, match_prob_test = prediction_test_df.golden_label, prediction_test_df.prediction, prediction_test_df.score
-    # tn_test, fp_test, fn_test, tp_test = confusion_matrix(golden_test, pred_test).ravel()
-
-    neg_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 0]
-    neg_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 0]
-    neg_true = np.zeros(len(neg_pred), dtype=int)
-    pos_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 1]
-    pos_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 1]
-    pos_true = np.ones(len(pos_pred), dtype=int)
-
+    # Report template
     model_report = {
         f"{name}": {
             "epoch_stop": state['epoch'],
             "mode": experiment_config['eval_config'].get('mode', 'plain') + str(experiment_config.get('threshold', '')),
+
+        }
+    }
+
+    # Dev data
+    if config_or_modelpath != 'debug.json':
+        prediction_dev_df, experiment_config = predict(model, tokenizer, experiment_config, "eval")
+        golden_dev, pred_dev, match_prob_dev = prediction_dev_df.golden_label, prediction_dev_df.prediction, prediction_dev_df.score
+
+        model_report[name].update(evaluate(pred_dev, golden_dev, match_prob_dev))
+
+    # Test data
+    submission_file_path = "./" + name + ".json"
+    prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
+    generate_submission(prediction_test_df, submission_file_path)
+    mAP_strict, mAP_relaxed = calc_map(submission_file_path)
+    model_report[name].update(
+        {
             "mAP_strict": mAP_strict,
             "mAP_relaxed": mAP_relaxed
         }
-    }
-    model_report[name].update(evaluate(pred_test, golden_test, match_prob_test))
+    )
+    # golden_test, pred_test, match_prob_test = prediction_test_df.golden_label, prediction_test_df.prediction, prediction_test_df.score
+    # tn_test, fp_test, fn_test, tp_test = confusion_matrix(golden_test, pred_test).ravel()
+
+    # neg_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 0]
+    # neg_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 0]
+    # neg_true = np.zeros(len(neg_pred), dtype=int)
+    # pos_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 1]
+    # pos_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 1]
+    # pos_true = np.ones(len(pos_pred), dtype=int)
+
     model_report[name].update({"model_path": str(model_path)})
 
     # ============================================
