@@ -9,7 +9,7 @@ import torch
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EvalPrediction
 from transformers import EarlyStoppingCallback
 
-from dataset_hf import KPADataset
+from dataset import KPADataset
 from evaluate import evaluate
 from utils import get_logger, get_project_path
 

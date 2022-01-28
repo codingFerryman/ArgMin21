@@ -6,7 +6,7 @@ import pandas as pd
 import torch.cuda
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-from classifier_hf import training
+from classifier import training
 from evaluate import evaluate, generate_submission, calc_map
 from predict import predict
 from utils import get_project_path, get_logger, set_seed
@@ -14,25 +14,15 @@ from utils import get_project_path, get_logger, set_seed
 set_seed(42)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 
 logger = get_logger("main", "debug")
 
 config_dir = Path(get_project_path(), 'config')
 
-# ============================================
-# Configurations
-# ============================================
 
-config_or_modelpath_list = [
-    "basic/roberta-base.json",
-    "basic/roberta-large.json",
-    "basic/bert-base.json",
-    "basic/bert-large.json"
-    "basic/albert-base.json"
-]
-
-for config_or_modelpath in config_or_modelpath_list:
+def run(config_or_modelpath, cuda_device="0"):
+    os.environ["CUDA_VISIBLE_DEVICES"] = cuda_device
     torch.cuda.empty_cache()
     logger.info(f"Model: {config_or_modelpath}")
 
@@ -107,11 +97,14 @@ for config_or_modelpath in config_or_modelpath_list:
     # pos_true = np.ones(len(pos_pred), dtype=int)
 
     model_report[name].update({"model_path": str(model_path)})
+    return model_report
 
-    # ============================================
-    # Performance Report
-    # ============================================
 
+# ============================================
+# Performance Report
+# ============================================
+
+def report(model_report):
     report_path = Path('.', "report.csv")
     if Path(report_path).is_file():
         _tmp_report_df = pd.read_csv(report_path, index_col='name')

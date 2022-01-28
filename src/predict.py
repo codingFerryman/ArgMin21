@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from dataset_hf import KPADataset
+from dataset import KPADataset
 from utils import get_logger, get_device
 
 LOG_LEVEL = "INFO"
