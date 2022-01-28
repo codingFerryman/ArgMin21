@@ -126,7 +126,7 @@ def _post_process_folds_report(reports, predictions) -> Dict:
     mAP_strict, mAP_relaxed = calc_map(submission_file_path)
 
     report = reports[0]
-    report_key = list(report.keys())[0]
+    report_key = list(report.keys())[0] + '_kfold'
 
     report[report_key]['epoch_stop'] = -1
     report[report_key]['model_path'] = f"{len(predictions)} folds"
@@ -145,12 +145,3 @@ def _post_process_folds_report(reports, predictions) -> Dict:
     report[report_key]['mAP_relaxed'] = mAP_relaxed
 
     return report
-
-    # model_report[name].update(
-    #     {
-    #         "mAP_strict": mAP_strict,
-    #         "mAP_relaxed": mAP_relaxed
-    #     }
-    # )
-
-    pass
