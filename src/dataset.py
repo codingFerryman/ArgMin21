@@ -39,7 +39,10 @@ class KPADataset(Dataset):
             self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
         self.tokenizer_config = tokenizer_config
 
-        self.add_info = add_info.split(',')
+        if add_info is not None:
+            self.add_info = add_info.split(',')
+        else:
+            self.add_info = None
 
     def __len__(self):
         return len(self.data)
