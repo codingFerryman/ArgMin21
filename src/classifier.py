@@ -1,9 +1,10 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
+import pandas as pd
 import scipy
 import torch
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EvalPrediction
@@ -42,7 +43,11 @@ def compute_metrics(eval_preds: EvalPrediction):
     return evaluate(preds, labels, scores)
 
 
-def training(config_path: Union[str, Path]):
+def training(
+        config_path: Union[str, Path],
+        train_data: Optional[pd.DataFrame] = None,
+        val_data: Optional[pd.DataFrame] = None,
+):
     torch.cuda.empty_cache()
     now = datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -72,6 +77,7 @@ def training(config_path: Union[str, Path]):
         model_name,
         tokenizer_config=tokenizer_config,
         subset="train",
+        data=train_data,
         **data_config
     )
 
@@ -79,6 +85,7 @@ def training(config_path: Union[str, Path]):
         model_name,
         tokenizer_config=tokenizer_config,
         subset="dev",
+        data=val_data,
         **data_config
     )
 

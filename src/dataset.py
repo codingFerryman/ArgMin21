@@ -25,7 +25,7 @@ class KPADataset(Dataset):
         assert bool(data) + bool(subset), "None of data or subset is provided :("
 
         if bool(data) and bool(subset):
-            self.subset = None
+            self.subset = subset
             self.data = data
         else:
             self.subset = subset
@@ -93,9 +93,9 @@ class KPADataset(Dataset):
                     truncation=True,
                     **tokenizer_config
                 )
-                token_ids = torch.cat([token_ids, encoded['input_ids'].squeeze(0)])
-                attn_masks = torch.cat([attn_masks, encoded['attention_mask'].squeeze(0)])
-                token_type_ids = torch.cat([token_type_ids, encoded['token_type_ids'].squeeze(0)])
+                token_ids = torch.cat([token_ids, encoded['input_ids'].squeeze(0)[1:]])
+                attn_masks = torch.cat([attn_masks, encoded['attention_mask'].squeeze(0)[1:]])
+                token_type_ids = torch.cat([token_type_ids, encoded['token_type_ids'].squeeze(0)[1:]])
 
         arg_id = self.data.loc[idx, 'arg_id']
         key_point_id = self.data.loc[idx, 'key_point_id']
