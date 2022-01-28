@@ -9,7 +9,9 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from classifier_hf import training
 from evaluate import evaluate, generate_submission, calc_map
 from predict import predict
-from utils import get_project_path, get_logger
+from utils import get_project_path, get_logger, set_seed
+
+set_seed(42)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
