@@ -12,10 +12,10 @@ logger = get_logger("dataset")
 class KFolds:
     def __init__(self, num_folds: int = 7, folds_dir: Optional[Union[Path, str]] = None):
         self.num_folds = num_folds
-        self.folds_dir = folds_dir
-        if self.folds_dir is None:
-            self.folds_dir = Path('.', 'folds')
-            self.folds_dir.mkdir(parents=True, exist_ok=True)
+        # self.folds_dir = folds_dir
+        # if self.folds_dir is None:
+        #     self.folds_dir = Path('.', 'folds')
+        #     self.folds_dir.mkdir(parents=True, exist_ok=True)
 
         self.fit_df = None
         self.topic2id = None
@@ -25,6 +25,10 @@ class KFolds:
         train_df = generate_combined_df(subset='train', ratio=ratio)
         dev_df = generate_combined_df(subset='dev', ratio=ratio)
         self.fit_df = pd.concat([train_df, dev_df]).drop_duplicates()
+
+    def get_fit_df(self):
+        assert self.fit_df is not None
+        return self.fit_df
 
     def _assign_topic_ids(self):
         assert self.fit_df is not None
@@ -36,18 +40,25 @@ class KFolds:
         self.fit_df['topic_id'] = self.fit_df['topic'].map(lambda x: self.topic2id[x])
         self.splits = [split for split in KFold(self.num_folds).split(range(len(self.topic2id)))]
 
+    def get_fold_indices(self, fold_id: int):
+        assert self.splits is not None
+        fold_split = self.splits[fold_id]
+        fold_train_indices = self.fit_df.index[self.fit_df.topic_id.isin(fold_split[0])]
+        fold_dev_indices = self.fit_df.index[self.fit_df.topic_id.isin(fold_split[1])]
+        return fold_train_indices, fold_dev_indices
+
     def get_fold(self, fold_id: int) -> Tuple[pd.DataFrame, ...]:
         assert self.splits is not None
         fold_split = self.splits[fold_id]
         fold_train = self.fit_df[self.fit_df.topic_id.isin(fold_split[0])]
         fold_dev = self.fit_df[self.fit_df.topic_id.isin(fold_split[1])]
-        return fold_train, fold_dev
+        return fold_train.reset_index(), fold_dev.reset_index()
 
-    def get_fold_dataset(self, fold_id: int, **dataset_config):
-        fold_train, fold_dev = self.get_fold(fold_id)
-        train_dataset = dataset_config.update({'data': fold_train})
-        dev_dataset = dataset_config.update({'data': fold_dev})
-        return train_dataset, dev_dataset
+    # def get_fold_dataset(self, fold_id: int, **dataset_config):
+    #     fold_train, fold_dev = self.get_fold(fold_id)
+    #     train_dataset = dataset_config.update({'data': fold_train})
+    #     dev_dataset = dataset_config.update({'data': fold_dev})
+    #     return train_dataset, dev_dataset
 
 
 if __name__ == '__main__':

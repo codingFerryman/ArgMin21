@@ -22,9 +22,9 @@ class KPADataset(Dataset):
             load_ratio=1.,
             add_info: Optional[str] = None
     ):
-        assert bool(data) + bool(subset), "None of data or subset is provided :("
+        assert (data is not None) or (subset is not None), "None of data or subset is provided :("
 
-        if bool(data) and bool(subset):
+        if (data is not None) and (subset is not None):
             self.subset = subset
             self.data = data
         else:

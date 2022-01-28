@@ -1,10 +1,9 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 
 import numpy as np
-import pandas as pd
 import scipy
 import torch
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EvalPrediction
@@ -45,8 +44,9 @@ def compute_metrics(eval_preds: EvalPrediction):
 
 def training(
         config_path: Union[str, Path],
-        train_data: Optional[pd.DataFrame] = None,
-        val_data: Optional[pd.DataFrame] = None,
+        # kfold_fit_dataset=None,
+        train_data=None,
+        val_data=None,
 ):
     torch.cuda.empty_cache()
     now = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -73,6 +73,7 @@ def training(
         **model_config
     )
 
+    # if kfold_fit_dataset is None:
     train_dataset = KPADataset(
         model_name,
         tokenizer_config=tokenizer_config,
@@ -88,6 +89,16 @@ def training(
         data=val_data,
         **data_config
     )
+    # else:
+    #     fit_dataset = KPADataset(
+    #         model_name,
+    #         tokenizer_config=tokenizer_config,
+    #         subset="train",
+    #         data=kfold_fit_dataset,
+    #         # **data_config
+    #     )
+    #     train_dataset = Subset(fit_dataset, train_data_indices)
+    #     val_dataset = Subset(fit_dataset, val_data_indices)
 
     callbacks = [
         EarlyStoppingCallback(trainer_config.pop('early_stopping_patience', 5),
