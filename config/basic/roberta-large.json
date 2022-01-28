@@ -1,5 +1,5 @@
 {
-  "name": "roberta-large plain",
+  "name": "roberta-large",
   "seed": 42,
   "model_name": "roberta-large",
   "data_config": {
@@ -24,6 +24,6 @@
     "fp16": true
   },
   "eval_config": {
-    "mode": "plain"
+    "mode": "simple"
   }
 }

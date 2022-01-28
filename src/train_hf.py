@@ -72,7 +72,7 @@ for config_or_modelpath in config_or_modelpath_list:
         f"{name}": {
             "epoch_stop": state['epoch'],
             "mode": experiment_config['eval_config'].get('mode', 'plain') + str(experiment_config.get('threshold', '')),
-
+            "add_info": experiment_config['data_config'].get('add_info', None)
         }
     }
 

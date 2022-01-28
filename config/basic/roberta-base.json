@@ -1,5 +1,5 @@
 {
-  "name": "roberta-base plain",
+  "name": "roberta-base",
   "seed": 42,
   "model_name": "roberta-base",
   "data_config": {
@@ -23,6 +23,6 @@
     "fp16": true
   },
   "eval_config": {
-    "mode": "plain"
+    "mode": "simple"
   }
 }

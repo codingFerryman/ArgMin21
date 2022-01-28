@@ -78,7 +78,7 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
         "score": probabilities
     })
 
-    # mode = eval_config.get("mode", "plain")
+    # mode = eval_config.get("mode", "simple")
     # if ("th" in mode) and ("bm" not in mode):
     #     if subset == 'dev':
     #         if "f1" in mode:
