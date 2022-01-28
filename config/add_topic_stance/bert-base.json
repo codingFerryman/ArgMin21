@@ -1,10 +1,10 @@
 {
-  "name": "roberta-base+topic",
+  "name": "bert-base+topic+stance",
   "seed": 42,
-  "model_name": "roberta-base",
+  "model_name": "bert-base-uncased",
   "data_config": {
     "load_ratio": 1,
-    "add_info": "topic"
+    "add_info": "topic,stance"
   },
   "model_config": {
   },
