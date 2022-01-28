@@ -82,7 +82,7 @@ class KPADataset(Dataset):
                 preprocessed_text = self.text_preprocessing(str(self.data.loc[idx, info]))
                 if info == 'topic' and incl_stance:
                     preprocessed_text = preprocessed_text + stance
-                tokenizer_config = self.tokenizer_config
+                tokenizer_config = self.tokenizer_config.copy()
                 if info == 'topic':
                     tokenizer_config.update({"max_length": 10})
                 encoded = self.tokenizer.encode_plus(
