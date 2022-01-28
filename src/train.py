@@ -60,6 +60,7 @@ def run(config_or_modelpath, cuda_device="0"):
     # ============================================
 
     # Report template
+    logger.info(f"Preparing the report for {name}")
     model_report = {
         f"{name}": {
             "epoch_stop": state['epoch'],
@@ -76,7 +77,7 @@ def run(config_or_modelpath, cuda_device="0"):
         model_report[name].update(evaluate(pred_dev, golden_dev, match_prob_dev))
 
     # Test data
-    submission_file_path = "./" + name + ".json"
+    submission_file_path = "./predictions/" + name + ".json"
     prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
     generate_submission(prediction_test_df, submission_file_path)
     mAP_strict, mAP_relaxed = calc_map(submission_file_path)

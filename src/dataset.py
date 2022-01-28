@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 
 import pandas as pd
 import torch
@@ -20,7 +20,7 @@ class KPADataset(Dataset):
             subset: Optional[str] = "train",
             pretrained_tokenizer=None,
             load_ratio=1.,
-            add_info: Optional[List] = None
+            add_info: Optional[str] = None
     ):
         assert bool(data) + bool(subset), "None of data or subset is provided :("
 
@@ -39,7 +39,7 @@ class KPADataset(Dataset):
             self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=True)
         self.tokenizer_config = tokenizer_config
 
-        self.add_info = add_info
+        self.add_info = add_info.split(',')
 
     def __len__(self):
         return len(self.data)
