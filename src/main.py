@@ -20,8 +20,9 @@ def main(args: List[str]):
     config_or_modelpath = argv.get('model', None)
     assert config_or_modelpath is not None
     cuda_device = argv.get('cuda', "0")
+    report_path = argv.get('report', None)
     experiment_report = run(config_or_modelpath, cuda_device=cuda_device)
-    report(experiment_report)
+    report(experiment_report, report_path=report_path)
 
 
 if __name__ == '__main__':

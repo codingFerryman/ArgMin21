@@ -105,8 +105,9 @@ def run(config_or_modelpath, cuda_device="0"):
 # Performance Report
 # ============================================
 
-def report(model_report):
-    report_path = Path('.', "report.csv")
+def report(model_report, report_path=None):
+    if report_path is None:
+        report_path = Path('.', "report.csv")
     if Path(report_path).is_file():
         _tmp_report_df = pd.read_csv(report_path, index_col='name')
         report_dict = _tmp_report_df.to_dict('index')
