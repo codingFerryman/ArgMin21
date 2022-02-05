@@ -100,7 +100,7 @@ def run(config_or_modelpath, cuda_device="0", submission_dir=None, prediction_di
     if prediction_dir is None:
         prediction_dir = "./predictions/"
     prediction_file_path = prediction_dir + name + ".csv"
-    prediction_test_eval_df[['arg_id', 'key_point_id', 'prediction']].to_csv(prediction_file_path)
+    prediction_test_eval_df[['arg_id', 'key_point_id', 'prediction']].to_csv(prediction_file_path, index=False)
 
     # Note the saving path
     model_report[name].update({"model_path": str(model_path)})
