@@ -58,10 +58,15 @@ def string_preprocessing(text: str):
 
 
 def generate_combined_df(subset="train", ratio=1.):
-    assert subset in ["train", "dev", "test"]
+    assert subset in ["train", "dev", "test", "test_eval"]
     if subset == "test":
         gold_data_dir = Path(get_data_path(), 'test_data')
         return _generate_combined_df_test(gold_data_dir)
+    else:
+        if subset == 'test_eval':
+            subset = "test"
+    if subset == 'test':
+        gold_data_dir = Path(get_data_path(), 'test_data')
     else:
         gold_data_dir = Path(get_data_path(), 'kpm_data')
     arg_df, kp_df, labels_df = load_kpm_data(gold_data_dir, subset=subset)
@@ -81,11 +86,12 @@ def generate_combined_df(subset="train", ratio=1.):
 
 
 def _generate_combined_df_test(data_dir):
-    arg_df, kp_df, _ = load_kpm_data(data_dir, subset='test')
+    arg_df, kp_df, label_df = load_kpm_data(data_dir, subset='test')
     arg_df["topic_id"] = arg_df["arg_id"].map(extract_topic)
     kp_df["topic_id"] = kp_df["key_point_id"].map(extract_topic)
     merged_df = pd.merge(arg_df, kp_df, how="left", on=["topic", "stance", "topic_id"])
-    merged_df['label'] = None
+    merged_df = merged_df.join(label_df.set_index(['arg_id', 'key_point_id']), on=['arg_id', 'key_point_id'])
+    merged_df['labels'] = None
     return merged_df[['arg_id', 'argument', 'key_point_id', 'key_point', 'topic', 'stance', 'label']]
 
 

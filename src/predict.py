@@ -24,7 +24,7 @@ def load_model(path, model_class, **kwargs):
 def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
     if subset == 'dev':
         subset = 'eval'
-    assert subset in ["test", "eval"]
+    assert subset in ["test", "eval", "test_eval"]
 
     # Load model
     eval_config = config["eval_config"]
@@ -52,23 +52,27 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
     golden_labels = []
     probabilities = []
     with tqdm(test_dataloader, unit=' batch') as tdata:
-        for batch in tdata:
-            tdata.set_description(f"Predicting {subset}")
-            arg_id_list.extend(batch.pop("arg_id"))
-            kp_list.extend(batch.pop("key_point_id"))
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = pretrained_model(**batch)
-            logits = outputs.logits
-            _probs = scipy.special.softmax(scipy.special.softmax(logits.detach().cpu().numpy()), axis=1)
-            true_prob = _probs[:, 1]
-            probabilities.extend(true_prob)
-            if subset != 'test':
-                _labels = batch['labels'].cpu().detach().numpy()
-                golden_labels.extend(_labels)
-            predictions.extend(np.argmax(_probs, axis=1))
+        with torch.no_grad():
+            for batch in tdata:
+                tdata.set_description(f"Predicting {subset}")
+                arg_id_list.extend(batch.pop("arg_id"))
+                kp_list.extend(batch.pop("key_point_id"))
 
-    if len(golden_labels) == 0:
-        golden_labels = [None] * len(kp_list)
+                batch = {k: v.to(device) for k, v in batch.items()}
+
+                if subset != 'test':
+                    _labels = batch['labels'].cpu().detach().numpy()
+                else:
+                    _labels = batch.pop('labels')
+
+                outputs = pretrained_model(**batch)
+                logits = outputs.logits
+                _probs = scipy.special.softmax(scipy.special.softmax(logits.detach().cpu().numpy()), axis=1)
+                true_prob = _probs[:, 1]
+                probabilities.extend(true_prob)
+
+                golden_labels.extend(_labels)
+                predictions.extend(np.argmax(_probs, axis=1))
 
     prediction_df = pd.DataFrame({
         "arg_id": arg_id_list,
@@ -77,6 +81,8 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
         "golden_label": golden_labels,
         "score": probabilities
     })
+
+    return prediction_df, config
 
     # mode = eval_config.get("mode", "simple")
     # if ("th" in mode) and ("bm" not in mode):
@@ -134,8 +140,6 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
     #             _prob = _df.loc[_index, 'score']
     #             if _prob >= th:
     #                 prediction_df.at[_index, 'prediction'] = 1
-
-    return prediction_df, config
 
 # if __name__ == '__main__':
 #     from src.classifier_transformers import TransformersSentencePairClassifier

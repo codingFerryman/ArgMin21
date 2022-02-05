@@ -7,7 +7,7 @@ from track_1_kp_matching import get_predictions, evaluate_predictions
 from utils import load_kpm_data
 
 
-def evaluate(y_pred, y_true, score):
+def evaluate(y_pred, y_true, score, suffix=''):
     neg_pred = [y_pred[i] for i, v in enumerate(y_true) if v == 0]
     # neg_pos_prob = [score[i] for i, v in enumerate(y_true) if v == 0]
     neg_true = np.zeros(len(neg_pred), dtype=int)
@@ -16,14 +16,14 @@ def evaluate(y_pred, y_true, score):
     pos_true = np.ones(len(pos_pred), dtype=int)
 
     return {
-        "acc_neg": accuracy_score(neg_true, neg_pred),
-        "acc_pos": accuracy_score(pos_true, pos_pred),
-        "acc": accuracy_score(y_true, y_pred),
-        "prec": precision_score(y_true, y_pred),
-        "recall": recall_score(y_true, y_pred),
-        "f1_pos": f1_score(pos_true, pos_pred),
-        "f1": f1_score(y_true, y_pred),
-        "auc": roc_auc_score(y_true, score),
+        f"acc_neg{suffix}": accuracy_score(neg_true, neg_pred),
+        f"acc_pos{suffix}": accuracy_score(pos_true, pos_pred),
+        f"acc{suffix}": accuracy_score(y_true, y_pred),
+        f"prec{suffix}": precision_score(y_true, y_pred),
+        f"recall{suffix}": recall_score(y_true, y_pred),
+        f"f1_pos{suffix}": f1_score(pos_true, pos_pred),
+        f"f1{suffix}": f1_score(y_true, y_pred),
+        f"auc{suffix}": roc_auc_score(y_true, score),
     }
 
 

@@ -9,8 +9,8 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from classifier import training
 from evaluate import evaluate, generate_submission, calc_map
+from kfolds import KFolds
 from predict import predict
-from src.kfolds import KFolds
 from utils import get_project_path, get_logger, set_seed
 
 set_seed(42)
@@ -43,7 +43,7 @@ def run_kfold(config_or_modelpath, cuda_device="0"):
     Folds.setup_folds()
 
     final_report = {}
-    folds_predictions = []
+    folds_predictions = {}
 
     for fold_i in range(num_folds):
         logger.info(f"Training on Fold {fold_i}")
@@ -79,12 +79,20 @@ def run_kfold(config_or_modelpath, cuda_device="0"):
 
         # Dev data
         if config_or_modelpath != 'debug.json':
-            prediction_dev_df, experiment_config = predict(model, tokenizer, experiment_config, "eval")
+            prediction_dev_df, _ = predict(model, tokenizer, experiment_config, "eval")
             golden_dev, pred_dev, match_prob_dev = prediction_dev_df.golden_label, prediction_dev_df.prediction, prediction_dev_df.score
 
             model_report[name].update(evaluate(pred_dev, golden_dev, match_prob_dev))
 
         # Test data
+        # (predict for submission mode)
+        prediction_test_df, _ = predict(model, tokenizer, experiment_config, "test")
+        folds_predictions[fold_i] = prediction_test_df
+
+        # (evaluation mode)
+        prediction_test_eval_df, experiment_config = predict(model, tokenizer, experiment_config, "test_eval")
+        golden_test, pred_test, match_prob_test = prediction_test_eval_df.golden_label, prediction_test_eval_df.prediction, prediction_test_eval_df.score
+        model_report[name].update(evaluate(pred_test, golden_test, match_prob_test, '_test'))
 
         model_report[name].update({"model_path": str(model_path)})
         final_report[fold_i] = model_report
@@ -95,11 +103,12 @@ def run_kfold(config_or_modelpath, cuda_device="0"):
 # Performance Report
 # ============================================
 
-def report_kfold(folds_reports: Dict, report_path=None, folds_predictions: List[pd.DataFrame] = None):
+def report_kfold(folds_reports: Dict, report_path=None, folds_predictions: List[pd.DataFrame] = None,
+                 submission_dir=None):
     assert folds_reports is not None
     assert folds_predictions is not None
 
-    model_report = _post_process_folds_report(folds_reports, folds_predictions)
+    model_report = _post_process_folds_report(folds_reports, folds_predictions, submission_dir)
 
     if report_path is None:
         report_path = Path('.', "report.csv")
@@ -115,33 +124,46 @@ def report_kfold(folds_reports: Dict, report_path=None, folds_predictions: List[
     report_df.to_csv(report_path, float_format='%.5f')
 
 
-def _post_process_folds_report(reports, predictions) -> Dict:
+def _post_process_folds_report(reports, predictions, submission_dir=None) -> Dict:
     prediction_df = predictions[0][['arg_id', 'key_point_id', 'prediction', 'golden_label']]
     scores = [predictions[i]['score'] for i in range(len(predictions))]
     scores = sum(scores) / len(predictions)
     prediction_df['score'] = scores
 
-    submission_file_path = "./predictions/" + 'folds' + ".json"
+    if submission_dir is None:
+        submission_dir = "./predictions/"
+    submission_file_path = submission_dir + list(reports[0].keys())[0] + '_folds' + ".json"
     generate_submission(prediction_df, submission_file_path)
     mAP_strict, mAP_relaxed = calc_map(submission_file_path)
 
-    report = reports[0]
-    report_key = list(report.keys())[0] + '_kfold'
+    report_key = list(reports[0].keys())[0]
+    report_columns = list(reports[0][report_key].keys())
+    kfold_report_key = report_key + '_kfold'
 
-    report[report_key]['epoch_stop'] = -1
-    report[report_key]['model_path'] = f"{len(predictions)} folds"
+    kfold_report = {}
+    kfold_report[kfold_report_key] = {}
 
-    metrics = ['acc_neg', 'acc_pos', 'acc', 'prec', 'recall', 'f1_pos', 'f1', 'auc']
+    non_metrics = ['epoch_stop', 'mode', 'add_info', 'model_path']
+    kfold_report[kfold_report_key]['epoch_stop'] = -1
+    kfold_report[kfold_report_key]['mode'] = reports[0][report_key]['mode']
+    kfold_report[kfold_report_key]['add_info'] = reports[0][report_key]['add_info']
 
-    for i in range(1, len(predictions)):
-        r = reports[i]
-        for m in metrics:
-            report[report_key][m] += r[report_key][m]
+    metrics = list(set(report_columns) - set(non_metrics))
 
     for m in metrics:
-        report[report_key][m] /= len(predictions)
+        kfold_report[kfold_report_key][m] = 0.
 
-    report[report_key]['mAP_strict'] = mAP_strict
-    report[report_key]['mAP_relaxed'] = mAP_relaxed
+    for i in range(len(predictions)):
+        r = reports[i].copy()
+        for m in metrics:
+            kfold_report[kfold_report_key][m] += r[report_key][m]
 
-    return report
+    for m in metrics:
+        kfold_report[kfold_report_key][m] /= len(predictions)
+
+    kfold_report[kfold_report_key]['mAP_strict'] = mAP_strict
+    kfold_report[kfold_report_key]['mAP_relaxed'] = mAP_relaxed
+
+    kfold_report[kfold_report_key]['model_path'] = f"{len(predictions)} folds"
+
+    return kfold_report

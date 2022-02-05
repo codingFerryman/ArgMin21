@@ -21,12 +21,12 @@ logger = get_logger("main", "debug")
 config_dir = Path(get_project_path(), 'config')
 
 
-def run(config_or_modelpath, cuda_device="0"):
+def run(config_or_modelpath, cuda_device="0", submission_dir=None):
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_device
     torch.cuda.empty_cache()
     logger.info(f"Model: {config_or_modelpath}")
 
-    if config_or_modelpath[-5:] == '.json':
+    if Path(config_or_modelpath).suffix == '.json':
         config_path = Path(config_dir, config_or_modelpath)
 
         with open(config_path, 'r') as fc:
@@ -77,8 +77,12 @@ def run(config_or_modelpath, cuda_device="0"):
         model_report[name].update(evaluate(pred_dev, golden_dev, match_prob_dev))
 
     # Test data
-    submission_file_path = "./predictions/" + name + ".json"
+    # (submission mode)
+    if submission_dir is None:
+        submission_dir = "./predictions/"
+    submission_file_path = submission_dir + name + ".json"
     prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
+
     generate_submission(prediction_test_df, submission_file_path)
     mAP_strict, mAP_relaxed = calc_map(submission_file_path)
     model_report[name].update(
@@ -87,16 +91,13 @@ def run(config_or_modelpath, cuda_device="0"):
             "mAP_relaxed": mAP_relaxed
         }
     )
-    # golden_test, pred_test, match_prob_test = prediction_test_df.golden_label, prediction_test_df.prediction, prediction_test_df.score
-    # tn_test, fp_test, fn_test, tp_test = confusion_matrix(golden_test, pred_test).ravel()
 
-    # neg_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 0]
-    # neg_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 0]
-    # neg_true = np.zeros(len(neg_pred), dtype=int)
-    # pos_pred = [pred_test[i] for i, v in enumerate(golden_test) if v == 1]
-    # pos_pos_prob = [match_prob_test[i] for i, v in enumerate(golden_test) if v == 1]
-    # pos_true = np.ones(len(pos_pred), dtype=int)
+    # (evaluation mode)
+    prediction_test_eval_df, experiment_config = predict(model, tokenizer, experiment_config, "test_eval")
+    golden_test, pred_test, match_prob_test = prediction_test_eval_df.golden_label, prediction_test_eval_df.prediction, prediction_test_eval_df.score
+    model_report[name].update(evaluate(pred_test, golden_test, match_prob_test, '_test'))
 
+    # Note the saving path
     model_report[name].update({"model_path": str(model_path)})
     return model_report
 

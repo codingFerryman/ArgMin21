@@ -1,3 +1,8 @@
+import os
+
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+
 import sys
 from typing import List
 
@@ -22,13 +27,14 @@ def main(args: List[str]):
     assert config_or_modelpath is not None
     cuda_device = argv.get('cuda', "0")
     report_path = argv.get('report', None)
+    submit_dir = argv.get('submit', None)
 
     if 'kfold' not in config_or_modelpath:
-        experiment_report = run(config_or_modelpath, cuda_device=cuda_device)
+        experiment_report = run(config_or_modelpath, cuda_device=cuda_device, submission_dir=submit_dir)
         report(experiment_report, report_path=report_path)
     else:
         final_report, folds_predictions = run_kfold(config_or_modelpath, cuda_device=cuda_device)
-        report_kfold(final_report, report_path, folds_predictions)
+        report_kfold(final_report, report_path, folds_predictions, submission_dir=submit_dir)
 
 
 if __name__ == '__main__':

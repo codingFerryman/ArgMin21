@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Union
@@ -56,14 +57,18 @@ def training(
     with open(config_path, 'r') as fc:
         config = json.load(fc)
     name = config.get('name', 'default')
-    output_path = Path(get_project_path(), "models", f"{name}_{now}")
-    if not output_path.is_dir():
-        output_path.mkdir(parents=True)
+
     trainer_config = config['trainer_config']
     data_config = config['data_config']
     tokenizer_config = config['tokenizer_config']
     model_config = config['model_config']
     model_name = config.get("model_name")
+
+    _saving_dir = os.getenv('MODEL_LOGGING_PATH', trainer_config.pop('saving_dir', Path(get_project_path(), "models")))
+
+    output_path = Path(_saving_dir, f"{name}_{now}")
+    if not output_path.is_dir():
+        output_path.mkdir(parents=True)
 
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name,

@@ -4,7 +4,7 @@ from typing import Optional, Union, Tuple
 import pandas as pd
 from sklearn.model_selection import KFold
 
-from src.utils import get_logger, generate_combined_df
+from utils import get_logger, generate_combined_df
 
 logger = get_logger("dataset")
 

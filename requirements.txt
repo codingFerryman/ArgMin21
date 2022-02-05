@@ -3,7 +3,8 @@ pandas
 numpy
 scikit-learn
 torch<1.9+cu111
-transformers<4.12
+transformers~=4.16
+tokenizers~=0.11
 datasets
 matplotlib
 coloredlogs

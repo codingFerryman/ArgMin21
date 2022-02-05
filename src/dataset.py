@@ -100,32 +100,32 @@ class KPADataset(Dataset):
         arg_id = self.data.loc[idx, 'arg_id']
         key_point_id = self.data.loc[idx, 'key_point_id']
 
-        if self.subset == 'test':
+        label = self.data.loc[idx, 'label']
+        if 'eval' in self.subset:
             return {
                 'input_ids': token_ids,
                 'attention_mask': attn_masks,
                 'token_type_ids': token_type_ids,
+                'labels': label,
+                'arg_id': arg_id,  # List
+                'key_point_id': key_point_id  # List
+            }
+        elif self.subset == 'test':
+            return {
+                'input_ids': token_ids,
+                'attention_mask': attn_masks,
+                'token_type_ids': token_type_ids,
+                'labels': label,
                 'arg_id': arg_id,  # List
                 'key_point_id': key_point_id  # List
             }
         else:
-            label = self.data.loc[idx, 'label']
-            if self.subset == 'eval':
-                return {
-                    'input_ids': token_ids,
-                    'attention_mask': attn_masks,
-                    'token_type_ids': token_type_ids,
-                    'labels': label,
-                    'arg_id': arg_id,  # List
-                    'key_point_id': key_point_id  # List
-                }
-            else:
-                return {
-                    'input_ids': token_ids,
-                    'attention_mask': attn_masks,
-                    'token_type_ids': token_type_ids,
-                    'labels': label
-                }
+            return {
+                'input_ids': token_ids,
+                'attention_mask': attn_masks,
+                'token_type_ids': token_type_ids,
+                'labels': label
+            }
 
     @staticmethod
     def text_preprocessing(text: str):
