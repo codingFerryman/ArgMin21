@@ -13,8 +13,11 @@ psutil
 humanize
 GPUtil
 tqdm
+regex
+sacremoses
+click
 pytorch-lightning
-torchmetrics<0.7
+torchmetrics
 
 # package location
 --find-links https://download.pytorch.org/whl/lts/1.8/torch_lts.html

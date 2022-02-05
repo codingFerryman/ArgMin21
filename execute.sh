@@ -9,12 +9,11 @@ export TRANSFORMERS_CACHE=/root/autodl-tmp/transformers_cache/
 
 export MODEL_LOGGING_PATH=/root/autodl-tmp/argmin21/logging/
 
-for model_config in albert-bash.json bert-base.json roberta-base.json
-do
+for model_config in albert-base.json bert-base.json roberta-base.json; do
   python \
-  /root/argmin21/src/main.py \
-  model=basic/$model_config \
-  cuda=$cuda_device \
-  report=$report_path \
-  submit=$submit_dir
+    /root/argmin21/src/main.py \
+    model=basic/$model_config \
+    cuda=$cuda_device \
+    report=$report_path \
+    submit=$submit_dir
 done
