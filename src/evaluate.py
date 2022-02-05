@@ -1,4 +1,5 @@
 import json
+import os
 
 import numpy as np
 from sklearn.metrics import *
@@ -33,6 +34,7 @@ def generate_submission(pred_df, output_file='./submission.csv'):
         _tmp_df = pred_df[pred_df.arg_id == arg_id][["key_point_id", "score"]].set_index("key_point_id")
         _tmp_dict = _tmp_df.to_dict()['score']
         submit_dict[arg_id] = _tmp_dict
+    os.makedirs(os.path.dirname(str(output_file)), exist_ok=True)
     with open(output_file, 'w') as fp:
         json.dump(submit_dict, fp, indent=4, sort_keys=True)
     return output_file
