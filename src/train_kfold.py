@@ -12,6 +12,7 @@ from evaluate import evaluate, generate_submission, calc_map
 from kfolds import KFolds
 from predict import predict
 from utils import get_project_path, get_logger, set_seed
+from utils import load_kpm_data
 
 set_seed(42)
 
@@ -44,6 +45,7 @@ def run_kfold(config_or_modelpath, cuda_device="0"):
 
     final_report = {}
     folds_predictions = {}
+    match_prob_test_list = []
 
     for fold_i in range(num_folds):
         logger.info(f"Training on Fold {fold_i}")
@@ -92,11 +94,13 @@ def run_kfold(config_or_modelpath, cuda_device="0"):
         # (evaluation mode)
         prediction_test_eval_df, experiment_config = predict(model, tokenizer, experiment_config, "test_eval")
         golden_test, pred_test, match_prob_test = prediction_test_eval_df.golden_label, prediction_test_eval_df.prediction, prediction_test_eval_df.score
+        match_prob_test_list.append(match_prob_test)
+
         model_report[name].update(evaluate(pred_test, golden_test, match_prob_test, '_test'))
 
         model_report[name].update({"model_path": str(model_path)})
         final_report[fold_i] = model_report
-    return final_report, folds_predictions
+    return final_report, folds_predictions, match_prob_test_list
 
 
 # ============================================
@@ -104,7 +108,7 @@ def run_kfold(config_or_modelpath, cuda_device="0"):
 # ============================================
 
 def report_kfold(folds_reports: Dict, report_path=None, folds_predictions: List[pd.DataFrame] = None,
-                 submission_dir=None):
+                 submission_dir=None, prediction_dir=None, test_eval_match_prob=None):
     assert folds_reports is not None
     assert folds_predictions is not None
 
@@ -122,6 +126,15 @@ def report_kfold(folds_reports: Dict, report_path=None, folds_predictions: List[
     report_df = pd.DataFrame.from_dict(report_dict, orient='index').fillna(-1)
     report_df.index.name = 'name'
     report_df.to_csv(report_path, float_format='%.5f')
+
+    if test_eval_match_prob is not None:
+        test_eval_scores = sum(test_eval_match_prob) / len(test_eval_match_prob)
+        _, _, test_label_df = load_kpm_data(subset='test')
+        test_label_df['prediction'] = test_eval_scores
+        if prediction_dir is None:
+            prediction_dir = "./predictions/"
+        prediction_file_path = Path(prediction_dir, list(model_report.keys())[0] + ".csv")
+        test_label_df[['arg_id', 'key_point_id', 'prediction']].to_csv(prediction_file_path, index=False)
 
 
 def _post_process_folds_report(reports, predictions, submission_dir=None) -> Dict:

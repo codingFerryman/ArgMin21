@@ -31,7 +31,8 @@ def main(args: List[str]):
     prediction_dir = argv.get('pred', None)
 
     if 'kfold' not in config_or_modelpath:
-        experiment_report = run(config_or_modelpath, cuda_device=cuda_device, submission_dir=submit_dir,
+        experiment_report = run(config_or_modelpath, cuda_device=cuda_device,
+                                submission_dir=submit_dir,
                                 prediction_dir=prediction_dir)
         report(experiment_report, report_path=report_path)
     else:
@@ -40,6 +41,7 @@ def main(args: List[str]):
                      report_path,
                      folds_predictions,
                      submission_dir=submit_dir,
+                     prediction_dir=prediction_dir,
                      test_eval_match_prob=match_prob_test_list)
 
 
