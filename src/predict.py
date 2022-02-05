@@ -63,7 +63,7 @@ def predict(pretrained_model, pretrained_tokenizer, config, subset="test"):
                 if subset != 'test':
                     _labels = batch['labels'].cpu().detach().numpy()
                 else:
-                    _labels = batch.pop('labels')
+                    _labels = batch.pop('labels').cpu().detach().numpy()
 
                 outputs = pretrained_model(**batch)
                 logits = outputs.logits

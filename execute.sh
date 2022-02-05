@@ -1,6 +1,7 @@
 cuda_device=0
 report_path=/root/autodl-nas/argmin21/report.csv
 submit_dir=/root/autodl-nas/argmin21/submissions/
+predict_dir=/root/autodl-nas/argmin21/predictions/
 
 export TRANSFORMERS_VERBOSITY=error
 export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
@@ -15,5 +16,6 @@ for model_config in albert-base.json bert-base.json roberta-base.json; do
     model=basic/$model_config \
     cuda=$cuda_device \
     report=$report_path \
-    submit=$submit_dir
+    submit=$submit_dir \
+    pred=$predict_dir
 done

@@ -28,13 +28,19 @@ def main(args: List[str]):
     cuda_device = argv.get('cuda', "0")
     report_path = argv.get('report', None)
     submit_dir = argv.get('submit', None)
+    prediction_dir = argv.get('pred', None)
 
     if 'kfold' not in config_or_modelpath:
-        experiment_report = run(config_or_modelpath, cuda_device=cuda_device, submission_dir=submit_dir)
+        experiment_report = run(config_or_modelpath, cuda_device=cuda_device, submission_dir=submit_dir,
+                                prediction_dir=prediction_dir)
         report(experiment_report, report_path=report_path)
     else:
-        final_report, folds_predictions = run_kfold(config_or_modelpath, cuda_device=cuda_device)
-        report_kfold(final_report, report_path, folds_predictions, submission_dir=submit_dir)
+        final_report, folds_predictions, match_prob_test_list = run_kfold(config_or_modelpath, cuda_device=cuda_device)
+        report_kfold(final_report,
+                     report_path,
+                     folds_predictions,
+                     submission_dir=submit_dir,
+                     test_eval_match_prob=match_prob_test_list)
 
 
 if __name__ == '__main__':

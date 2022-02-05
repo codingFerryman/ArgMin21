@@ -21,7 +21,7 @@ logger = get_logger("main", "debug")
 config_dir = Path(get_project_path(), 'config')
 
 
-def run(config_or_modelpath, cuda_device="0", submission_dir=None):
+def run(config_or_modelpath, cuda_device="0", submission_dir=None, prediction_dir=None):
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_device
     torch.cuda.empty_cache()
     logger.info(f"Model: {config_or_modelpath}")
@@ -79,7 +79,7 @@ def run(config_or_modelpath, cuda_device="0", submission_dir=None):
     # Test data
     # (submission mode)
     if submission_dir is None:
-        submission_dir = "./predictions/"
+        submission_dir = "./submissions/"
     submission_file_path = submission_dir + name + ".json"
     prediction_test_df, experiment_config = predict(model, tokenizer, experiment_config, "test")
 
@@ -96,6 +96,11 @@ def run(config_or_modelpath, cuda_device="0", submission_dir=None):
     prediction_test_eval_df, experiment_config = predict(model, tokenizer, experiment_config, "test_eval")
     golden_test, pred_test, match_prob_test = prediction_test_eval_df.golden_label, prediction_test_eval_df.prediction, prediction_test_eval_df.score
     model_report[name].update(evaluate(pred_test, golden_test, match_prob_test, '_test'))
+
+    if prediction_dir is None:
+        prediction_dir = "./predictions/"
+    prediction_file_path = prediction_dir + name + ".csv"
+    prediction_test_eval_df[['arg_id', 'key_point_id', 'prediction']].to_csv(prediction_file_path)
 
     # Note the saving path
     model_report[name].update({"model_path": str(model_path)})
