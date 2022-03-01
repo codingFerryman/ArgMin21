@@ -61,5 +61,32 @@ Most of the source code are in [src](./src/).
 - [predict.py](./src/predict.py) is used for loading a trained model and predict the labels of given data.
 - [utlis.py](./src/utils.py) miscellaneous functions.
 
+## Execution
+The training, evaluation, and prediction, can be performed by executing the following script:
+```bash
+cuda_device=0
+model_config=<path-of-configuration-file>
+report_path=<path-of-CSV-file-for-performance-report>
+submit_dir=<path-of-directory-for-submission-file(s)>
+predict_dir=<path-of-directory-for-label-prediction-file(s)>
+
+export TRANSFORMERS_VERBOSITY=error
+export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
+
+# (Optional) Cache the Transformers models to a specified place, which can be helpful for training on the cloud
+# export TRANSFORMERS_CACHE=<path-of-Huggingface-Transformers-model-cache>
+
+export MODEL_LOGGING_PATH=<path-of-directory-for-training-log>
+
+python \
+  src/main.py \
+  model=$model_config \
+  cuda=$cuda_device \
+  report=$report_path \
+  submit=$submit_dir \
+  pred=$predict_dir
+```
+
+
 
 
