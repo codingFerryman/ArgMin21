@@ -59,7 +59,7 @@ Most of the source code are in [src](./src/).
 - [kfolds.py](./src/kfolds.py) is for K-Fold cross validation, which can load, split, and return specific fold.
 - [evaluate.py](./src/classifier.py): functions for performance evaluation and creating the submission file.
 - [predict.py](./src/predict.py) is used for loading a trained model and predict the labels of given data.
-- [utlis.py](./src/utils.py) miscelluous functions.
+- [utlis.py](./src/utils.py) miscellaneous functions.
 
 
 
